@@ -197,6 +197,8 @@ const NSL = (function () {
 
     const habiaGuardado = cargarEstadoGuardado();
 
+    if (window.IA) window.IA.precargar(); // descarga el modelo de IA en segundo plano, sin bloquear la UI
+
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", () => irAModulo(btn.dataset.modulo));
     });

@@ -13,11 +13,6 @@ const Modulos = (function () {
       .replace(/&/g, "&amp;").replace(/</g, "&lt;")
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  function normaliza(str) {
-    return String(str || "")
-      .toLowerCase()
-      .normalize("NFD").replace(/[̀-ͯ]/g, "");
-  }
   function el(html) {
     const div = document.createElement("div");
     div.innerHTML = html.trim();
@@ -52,6 +47,18 @@ const Modulos = (function () {
       '<button class="btn btn-primary" id="btnRevisar">' + (yaCompletado ? "Volver a revisar" : "Revisar respuestas") + '</button>' +
       '<button class="btn btn-secondary" id="btnGuardarModulo">Guardar avance</button>' +
       '</div>';
+  }
+
+  /* Pone el botón "Revisar respuestas" en estado de carga mientras
+     la IA local analiza el texto (puede tardar unos segundos,
+     especialmente la primera vez que descarga el modelo). */
+  function marcarAnalizando(analizando, yaCompletado) {
+    const btn = document.getElementById("btnRevisar");
+    if (!btn) return;
+    btn.disabled = analizando;
+    btn.textContent = analizando
+      ? "Analizando con IA…"
+      : (yaCompletado ? "Volver a revisar" : "Revisar respuestas");
   }
 
   /* ============================================================
@@ -735,10 +742,12 @@ const Modulos = (function () {
       NSL.guardarEstado(true);
     });
 
-    document.getElementById("btnRevisar").addEventListener("click", () => {
+    document.getElementById("btnRevisar").addEventListener("click", async () => {
       const respuestas = recolectar();
       NSL.guardarRespuestas("modulo5", respuestas);
-      const resultado = evaluarModulo5(M, respuestas);
+      marcarAnalizando(true);
+      const resultado = await evaluarModulo5(M, respuestas);
+      marcarAnalizando(false, true);
       NSL.registrarResultado("modulo5", resultado);
       document.getElementById("feedbackContainer5").innerHTML = feedbackBoxHTML(resultado.score, resultado.feedback);
       NSL.guardarEstado(false);
@@ -751,7 +760,7 @@ const Modulos = (function () {
     }
   }
 
-  function evaluarModulo5(M, respuestas) {
+  async function evaluarModulo5(M, respuestas) {
     const marcas = respuestas.marcas || {};
     let aciertos = 0;
     const detallesLogs = [];
@@ -773,12 +782,25 @@ const Modulos = (function () {
 
     const puntosLogs = (aciertos / M.logs.length) * 70;
 
+    // Preguntas de análisis: longitud mínima + cobertura semántica de los
+    // conceptos esperados (evaluada con IA local si está disponible; si no,
+    // cae a coincidencia de palabras clave — ver js/ia.js).
     let puntosPreguntas = 0;
     const textos = respuestas.respuestas || {};
-    M.preguntasAnalisis.forEach((p) => {
+    for (const p of M.preguntasAnalisis) {
       const t = (textos[p.id] || "").trim();
-      puntosPreguntas += t.length >= 40 ? 7.5 : t.length >= 15 ? 4 : 0;
-    });
+      let fraccion = 0;
+      if (t.length >= 15) fraccion = 0.4;
+      if (t.length >= 40) fraccion = Math.max(fraccion, 0.55);
+      if (t && p.conceptosEsperados && p.conceptosEsperados.length) {
+        const r = window.IA
+          ? await window.IA.calcularCoincidencias(t, p.conceptosEsperados)
+          : { hits: 0 };
+        if (r.hits >= 1) fraccion = Math.max(fraccion, 0.85);
+        if (r.hits >= 2) fraccion = 1;
+      }
+      puntosPreguntas += fraccion * 7.5;
+    }
 
     const score = Math.round(puntosLogs + puntosPreguntas);
 
@@ -850,10 +872,12 @@ const Modulos = (function () {
       NSL.guardarEstado(true);
     });
 
-    document.getElementById("btnRevisar").addEventListener("click", () => {
+    document.getElementById("btnRevisar").addEventListener("click", async () => {
       const respuestas = recolectar();
       NSL.guardarRespuestas("modulo6", respuestas);
-      const resultado = evaluarModulo6(M, respuestas);
+      marcarAnalizando(true);
+      const resultado = await evaluarModulo6(M, respuestas);
+      marcarAnalizando(false, true);
       NSL.registrarResultado("modulo6", resultado);
       document.getElementById("feedbackContainer6").innerHTML = feedbackBoxHTML(resultado.score, resultado.feedback);
       NSL.guardarEstado(false);
@@ -866,25 +890,22 @@ const Modulos = (function () {
     }
   }
 
-  function contarCoincidencias(texto, conceptos) {
-    const t = normaliza(texto);
-    let hits = 0;
-    conceptos.forEach((frase) => {
-      const palabrasClave = normaliza(frase).split(/\s+/).filter((w) => w.length > 4);
-      const encontrado = palabrasClave.some((w) => t.includes(w));
-      if (encontrado) hits++;
-    });
-    return hits;
-  }
-
-  function evaluarModulo6(M, respuestas) {
+  // La evaluación semántica de conceptos vive en js/ia.js (window.IA),
+  // que corre un modelo de embeddings local en el navegador y cae
+  // automáticamente a comparación por palabras clave si el modelo no
+  // está disponible.
+  async function evaluarModulo6(M, respuestas) {
     let puntosTotales = 0;
     const pesoPregunta = 100 / M.preguntas.length;
     const feedback = [];
 
-    M.preguntas.forEach((p, i) => {
+    for (let i = 0; i < M.preguntas.length; i++) {
+      const p = M.preguntas[i];
       const texto = (respuestas[p.id] || "").trim();
-      const hits = texto ? contarCoincidencias(texto, p.conceptosEsperados) : 0;
+      const r = texto && window.IA
+        ? await window.IA.calcularCoincidencias(texto, p.conceptosEsperados)
+        : { hits: 0 };
+      const hits = r.hits;
       let fraccion = 0;
       if (texto.length >= 15) fraccion = 0.4;
       if (hits >= 1) fraccion = Math.max(fraccion, 0.7);
@@ -896,11 +917,13 @@ const Modulos = (function () {
         titulo: `${i + 1}. ${p.texto}`,
         verdict,
         concepto: "Respuesta esperada orientativa (no literal): " + p.conceptosEsperados.join("; ") + ".",
-        motivo: texto ? "Tu respuesta fue registrada y comparada con los conceptos clave esperados para esta pregunta." : "No respondiste esta pregunta.",
+        motivo: texto
+          ? "Tu respuesta fue registrada y comparada" + (r.metodo === "ia" ? " con IA local" : "") + " con los conceptos clave esperados para esta pregunta."
+          : "No respondiste esta pregunta.",
         riesgo: verdict === "bad" ? "Sin identificar este punto, una parte importante de la respuesta al incidente quedaría incompleta." : undefined,
         mejora: verdict === "ok" ? undefined : "Incorpora explícitamente los conceptos listados arriba en tu respuesta."
       });
-    });
+    }
 
     return { score: Math.round(puntosTotales), feedback };
   }

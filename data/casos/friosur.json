@@ -236,10 +236,26 @@
       { "id": "l10", "fecha": "2026-08-05", "hora": "08:58", "usuario": "jperez", "ip": "10.20.1.15", "recurso": "Sistema de pedidos", "accion": "Consultar", "resultado": "Éxito", "sospechoso": false, "motivo": "Acceso normal en horario laboral desde red interna." }
     ],
     "preguntasAnalisis": [
-      { "id": "p1", "texto": "¿Qué usuario(s) y/o cuenta(s) podrían estar comprometidos? Justifica con base en los registros." },
-      { "id": "p2", "texto": "¿Qué acciones del registro ameritan una investigación prioritaria?" },
-      { "id": "p3", "texto": "¿Qué evidencias del registro deberían conservarse y por qué?" },
-      { "id": "p4", "texto": "¿Qué medidas de respuesta recomendarías a partir de este análisis?" }
+      {
+        "id": "p1",
+        "texto": "¿Qué usuario(s) y/o cuenta(s) podrían estar comprometidos? Justifica con base en los registros.",
+        "conceptosEsperados": ["La cuenta admin fue comprometida", "Varios intentos fallidos seguidos de un ingreso exitoso", "Ingreso desde una dirección IP externa desconocida"]
+      },
+      {
+        "id": "p2",
+        "texto": "¿Qué acciones del registro ameritan una investigación prioritaria?",
+        "conceptosEsperados": ["Los intentos fallidos de acceso a la cuenta administrativa", "La modificación del registro de temperatura", "El intento de acceso al servidor de despacho después del ingreso sospechoso"]
+      },
+      {
+        "id": "p3",
+        "texto": "¿Qué evidencias del registro deberían conservarse y por qué?",
+        "conceptosEsperados": ["Los registros de los intentos fallidos y el ingreso exitoso", "El registro de la modificación del dato de temperatura", "La dirección IP de origen y las marcas de tiempo de cada evento"]
+      },
+      {
+        "id": "p4",
+        "texto": "¿Qué medidas de respuesta recomendarías a partir de este análisis?",
+        "conceptosEsperados": ["Bloquear o deshabilitar la cuenta comprometida", "Investigar el alcance del acceso no autorizado", "Reforzar la autenticación multifactor para cuentas administrativas"]
+      }
     ]
   },
 

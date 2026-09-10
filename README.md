@@ -116,9 +116,25 @@ Al final, el **Resumen final** muestra el puntaje por módulo y el puntaje total
 
 ---
 
-## 7. Notas importantes
+## 7. Evaluación con IA de las respuestas de texto libre
+
+Las preguntas de texto libre (justificación del módulo 1, preguntas de análisis del módulo 5 y las 7 preguntas del módulo 6) se evalúan comparando la respuesta del estudiante contra una lista de `conceptosEsperados` definida en el JSON del caso — no se compara palabra por palabra, sino **por significado**.
+
+Esto se logra con un modelo de embeddings (`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, vía [Transformers.js](https://huggingface.co/docs/transformers.js)) que corre **enteramente en el navegador del estudiante** (`js/ia.js`):
+
+- **Sin backend ni API key.** No hay servidor propio ni costo por uso: el modelo se descarga una sola vez desde un CDN público (jsDelivr) y el navegador lo cachea (~100–150 MB la primera vez; en visitas siguientes no vuelve a descargarse).
+- **Ningún dato del estudiante sale de su navegador.** Todo el cálculo de similitud ocurre localmente; no se envía texto a ningún servidor externo.
+- **Respaldo automático.** Si el modelo no logra cargar (sin conexión, navegador muy antiguo, primera visita con red muy lenta), el sistema cae automáticamente a una comparación por palabras clave — el mismo mecanismo que tenía la versión anterior — para que el laboratorio nunca quede bloqueado.
+- El botón "Revisar respuestas" muestra "Analizando con IA…" mientras se calcula, ya que la primera evaluación de la sesión puede tardar unos segundos mientras se descarga o inicializa el modelo.
+
+Para el docente, el uso sigue siendo el mismo que antes: basta con definir `conceptosEsperados` (frases, no solo palabras sueltas) en `data/casos/<archivo>.json` para cada pregunta de texto libre — ver sección 4.
+
+---
+
+## 8. Notas importantes
 
 - No se solicitan ni almacenan credenciales reales.
 - No se usan nombres de empresas reales; todos los casos son ficticios.
 - El progreso guardado en `localStorage` es local al navegador del estudiante: si borra los datos del sitio o cambia de navegador/dispositivo, perderá el avance guardado (pero puede volver a completar el laboratorio en cualquier momento).
 - La aplicación es responsive: se adapta a computador y a tablet. En pantallas pequeñas, la navegación entre módulos se desplaza horizontalmente.
+- El repositorio de GitHub es **público** (requisito de GitHub Pages en el plan gratuito), por lo que cualquiera puede ver el código fuente y, si lo desea, abrir `data/casos/*.json` y ver las respuestas correctas de antemano. No hay datos sensibles reales expuestos, pero ten esto en cuenta si te preocupa que los estudiantes encuentren las respuestas antes de tiempo.
