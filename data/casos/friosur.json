@@ -1,0 +1,297 @@
+{
+  "caso": {
+    "id": "friosur",
+    "nombre": "FríoSur Distribución",
+    "sector": "Logística y distribución de alimentos refrigerados",
+    "descripcion": "FríoSur Distribución es una empresa ficticia dedicada al almacenamiento y distribución de alimentos refrigerados. Su operación depende de sistemas críticos de pedidos y despacho, sensores de temperatura, cámaras de seguridad, personal administrativo y de supervisión, proveedores externos y acceso remoto para parte del personal."
+  },
+
+  "modulo1": {
+    "titulo": "Módulo 1 · Diseño de una red segura",
+    "introduccion": "Organiza los componentes de FríoSur Distribución en las zonas de red que consideres adecuadas. Debes fundamentar tu propuesta: no existe una única solución, pero sí decisiones mejor y peor justificadas desde el punto de vista de la seguridad de redes.",
+    "zonas": [
+      { "id": "red_usuarios", "nombre": "Red de usuarios", "descripcion": "Estaciones de trabajo del personal operativo que usa aplicaciones de negocio en el día a día." },
+      { "id": "red_administrativa", "nombre": "Red administrativa", "descripcion": "Equipos y cuentas con privilegios elevados sobre sistemas de gestión interna (personal, configuración, administración)." },
+      { "id": "red_servidores", "nombre": "Red de servidores", "descripcion": "Aloja los sistemas y servicios críticos para la operación del negocio." },
+      { "id": "red_camaras", "nombre": "Red de cámaras", "descripcion": "Dispositivos de videovigilancia y su infraestructura de grabación." },
+      { "id": "red_sensores", "nombre": "Red de sensores", "descripcion": "Dispositivos IoT de monitoreo (por ejemplo, temperatura de cámaras de frío)." },
+      { "id": "zona_acceso_remoto", "nombre": "Zona de acceso remoto", "descripcion": "Punto controlado de entrada para conexiones externas (teletrabajo, proveedores) hacia la red interna." },
+      { "id": "internet", "nombre": "Internet", "descripcion": "Red pública, no confiable por definición." }
+    ],
+    "componentes": [
+      { "id": "sistema_pedidos", "nombre": "Sistema de pedidos", "descripcion": "Aplicación que gestiona los pedidos de los clientes.", "zonaCorrecta": "red_servidores", "critico": true },
+      { "id": "servidor_despacho", "nombre": "Servidor de despacho", "descripcion": "Coordina la salida de mercadería y rutas de reparto.", "zonaCorrecta": "red_servidores", "critico": true },
+      { "id": "registros_temperatura", "nombre": "Registros de temperatura", "descripcion": "Almacena el historial de temperatura de las cámaras de frío.", "zonaCorrecta": "red_servidores", "critico": true },
+      { "id": "camaras_seguridad", "nombre": "Cámaras de seguridad", "descripcion": "Dispositivos de videovigilancia de bodegas y accesos.", "zonaCorrecta": "red_camaras", "critico": false },
+      { "id": "sensores_refrigeracion", "nombre": "Sensores de refrigeración", "descripcion": "Sensores IoT que miden la temperatura en cámaras de frío.", "zonaCorrecta": "red_sensores", "critico": false },
+      { "id": "usuarios_administrativos", "nombre": "Usuarios administrativos", "descripcion": "Personal con privilegios para administrar sistemas y configuración.", "zonaCorrecta": "red_administrativa", "critico": true },
+      { "id": "supervisores", "nombre": "Supervisores", "descripcion": "Personal operativo que supervisa pedidos, despacho y rutas.", "zonaCorrecta": "red_usuarios", "critico": false },
+      { "id": "proveedores_externos", "nombre": "Proveedores externos", "descripcion": "Terceros que requieren acceso puntual a un sistema específico.", "zonaCorrecta": "zona_acceso_remoto", "critico": true },
+      { "id": "acceso_remoto", "nombre": "Acceso remoto (teletrabajo)", "descripcion": "Personal propio que se conecta desde fuera de la organización.", "zonaCorrecta": "zona_acceso_remoto", "critico": true }
+    ],
+    "criterios": [
+      { "id": "activos_criticos", "nombre": "Separación de activos críticos", "descripcion": "Los sistemas de pedidos, despacho y temperatura deben estar en una red de servidores separada del resto." },
+      { "id": "aislamiento_iot", "nombre": "Aislamiento de cámaras y sensores", "descripcion": "Cámaras y sensores deben quedar en redes propias, aisladas de la red administrativa." },
+      { "id": "proteccion_servidores", "nombre": "Protección de servidores", "descripcion": "Los servidores no deben compartir red con estaciones de usuario ni con dispositivos IoT." },
+      { "id": "acceso_remoto_controlado", "nombre": "Control de acceso remoto", "descripcion": "El acceso remoto y de proveedores debe pasar por una zona controlada, no ingresar directo a la red interna." },
+      { "id": "justificacion", "nombre": "Justificación del diseño", "descripcion": "El estudiante explica por qué segmentó la red de esa manera." }
+    ]
+  },
+
+  "modulo2": {
+    "titulo": "Módulo 2 · Reglas de firewall",
+    "introduccion": "Para cada comunicación, decide si debe permitirse, bloquearse o permitirse con registro (logging), y justifica brevemente tu decisión considerando necesidad operacional, riesgo, alcance y servicio específico.",
+    "opciones": [
+      { "id": "permitir", "nombre": "Permitir" },
+      { "id": "bloquear", "nombre": "Bloquear" },
+      { "id": "permitir_registrar", "nombre": "Permitir y registrar" }
+    ],
+    "reglas": [
+      {
+        "id": "r1",
+        "origen": "Usuarios",
+        "destino": "Servidor web (sistema de pedidos)",
+        "servicio": "HTTPS",
+        "respuestaCorrecta": "permitir_registrar",
+        "feedback": {
+          "permitir_registrar": "Correcto. Es una necesidad operacional legítima, el servicio es específico (HTTPS) y conviene registrar el acceso a un sistema de negocio para trazabilidad.",
+          "permitir": "El acceso es legítimo, pero al ser un sistema de negocio crítico conviene registrar la actividad para auditoría, no solo permitirla sin trazas.",
+          "bloquear": "Bloquear impediría la operación normal del negocio: los usuarios necesitan acceder al sistema de pedidos por un servicio específico y acotado (HTTPS)."
+        }
+      },
+      {
+        "id": "r2",
+        "origen": "Usuarios",
+        "destino": "Base de datos",
+        "servicio": "Acceso directo",
+        "respuestaCorrecta": "bloquear",
+        "feedback": {
+          "bloquear": "Correcto. Los usuarios no deberían acceder directo a la base de datos; deben hacerlo a través de la aplicación. El acceso directo amplía innecesariamente la superficie de ataque.",
+          "permitir": "Permitir acceso directo a la base de datos desde equipos de usuario es un riesgo alto: expone datos sensibles sin pasar por controles de la aplicación.",
+          "permitir_registrar": "Registrar no compensa el riesgo: el acceso directo a la base de datos desde usuarios no tiene una necesidad operacional clara y debería bloquearse."
+        }
+      },
+      {
+        "id": "r3",
+        "origen": "Administración",
+        "destino": "Router",
+        "servicio": "Gestión",
+        "respuestaCorrecta": "permitir_registrar",
+        "feedback": {
+          "permitir_registrar": "Correcto. La administración de red es una tarea legítima y sensible; debe permitirse solo a la red administrativa y quedar registrada por su impacto potencial.",
+          "permitir": "El acceso de gestión a un router es una operación de alto impacto: siempre debe quedar registrada, no solo permitida.",
+          "bloquear": "Bloquear impide tareas legítimas de administración de la infraestructura de red."
+        }
+      },
+      {
+        "id": "r4",
+        "origen": "Cámaras",
+        "destino": "Internet",
+        "servicio": "Cualquier servicio",
+        "respuestaCorrecta": "bloquear",
+        "feedback": {
+          "bloquear": "Correcto. Un dispositivo IoT que puede comunicarse con Internet sin restricciones es un riesgo grave (por ejemplo, ser parte de una botnet). El alcance debe limitarse estrictamente.",
+          "permitir": "Permitir 'cualquier servicio' hacia Internet desde una cámara viola el principio de alcance limitado y es un riesgo de seguridad significativo.",
+          "permitir_registrar": "Registrar no es suficiente: el problema de fondo es el alcance sin restricción ('cualquier servicio'), que debe bloquearse o acotarse estrictamente."
+        }
+      },
+      {
+        "id": "r5",
+        "origen": "Proveedor externo",
+        "destino": "Servidor de despacho",
+        "servicio": "Servicio autorizado (acceso acotado)",
+        "respuestaCorrecta": "permitir_registrar",
+        "feedback": {
+          "permitir_registrar": "Correcto. Un tercero puede tener necesidad operacional real, pero el acceso debe ser a un servicio específico, acotado y siempre registrado por tratarse de una entidad externa.",
+          "permitir": "El acceso de un proveedor externo a un sistema crítico debe quedar registrado, dado el mayor riesgo que implica una entidad ajena a la organización.",
+          "bloquear": "Si el servicio está formalmente autorizado y acotado, bloquearlo impide una necesidad operacional legítima; lo adecuado es permitirlo con registro."
+        }
+      },
+      {
+        "id": "r6",
+        "origen": "Sensores",
+        "destino": "Servidor de temperatura",
+        "servicio": "Monitoreo",
+        "respuestaCorrecta": "permitir_registrar",
+        "feedback": {
+          "permitir_registrar": "Correcto. Es la comunicación esperada de estos dispositivos, con un servicio específico (monitoreo); registrar permite auditar la integridad de las lecturas de temperatura, dato crítico para FríoSur.",
+          "permitir": "Dado que los registros de temperatura son evidencia crítica de la cadena de frío, conviene registrar también esta comunicación, no solo permitirla.",
+          "bloquear": "Bloquear impediría el monitoreo de temperatura, que es la función esencial de estos sensores."
+        }
+      }
+    ]
+  },
+
+  "modulo3": {
+    "titulo": "Módulo 3 · Autenticación y autorización",
+    "introduccion": "Completa la matriz indicando qué puede hacer cada rol sobre cada recurso. Piensa en mínimo privilegio y separación de funciones: no todos los roles necesitan todo.",
+    "roles": [
+      { "id": "operador", "nombre": "Operador" },
+      { "id": "supervisor", "nombre": "Supervisor" },
+      { "id": "administrador", "nombre": "Administrador" },
+      { "id": "proveedor_externo", "nombre": "Proveedor externo" }
+    ],
+    "recursos": [
+      { "id": "sistema_pedidos", "nombre": "Sistema de pedidos" },
+      { "id": "sistema_despacho", "nombre": "Sistema de despacho" },
+      { "id": "registros_temperatura", "nombre": "Registros de temperatura" },
+      { "id": "configuracion_red", "nombre": "Configuración de red" },
+      { "id": "gestion_usuarios", "nombre": "Gestión de usuarios" },
+      { "id": "reportes_operacion", "nombre": "Reportes de operación" }
+    ],
+    "acciones": [
+      { "id": "ingresar", "nombre": "Ingresar" },
+      { "id": "consultar", "nombre": "Consultar" },
+      { "id": "crear", "nombre": "Crear" },
+      { "id": "modificar", "nombre": "Modificar" },
+      { "id": "eliminar", "nombre": "Eliminar" },
+      { "id": "administrar", "nombre": "Administrar" }
+    ],
+    "matrizCorrecta": {
+      "operador": {
+        "sistema_pedidos": ["ingresar", "consultar", "crear"],
+        "sistema_despacho": ["ingresar", "consultar"],
+        "registros_temperatura": ["consultar"],
+        "configuracion_red": [],
+        "gestion_usuarios": [],
+        "reportes_operacion": ["consultar"]
+      },
+      "supervisor": {
+        "sistema_pedidos": ["ingresar", "consultar", "crear", "modificar"],
+        "sistema_despacho": ["ingresar", "consultar", "modificar"],
+        "registros_temperatura": ["consultar", "modificar"],
+        "configuracion_red": [],
+        "gestion_usuarios": [],
+        "reportes_operacion": ["ingresar", "consultar", "crear"]
+      },
+      "administrador": {
+        "sistema_pedidos": ["ingresar", "consultar", "administrar"],
+        "sistema_despacho": ["ingresar", "consultar", "administrar"],
+        "registros_temperatura": ["ingresar", "consultar", "administrar"],
+        "configuracion_red": ["ingresar", "consultar", "modificar", "administrar"],
+        "gestion_usuarios": ["ingresar", "consultar", "crear", "modificar", "eliminar", "administrar"],
+        "reportes_operacion": ["ingresar", "consultar", "administrar"]
+      },
+      "proveedor_externo": {
+        "sistema_pedidos": [],
+        "sistema_despacho": ["ingresar", "consultar"],
+        "registros_temperatura": [],
+        "configuracion_red": [],
+        "gestion_usuarios": [],
+        "reportes_operacion": []
+      }
+    },
+    "explicacionGeneral": "El administrador es el único rol con acceso a configuración de red y gestión de usuarios (funciones sensibles). El proveedor externo solo accede al sistema de despacho, y de forma acotada (ingresar y consultar), reflejando una relación de necesidad puntual. Ningún rol distinto del administrador debería tener permisos de eliminación o administración, para reducir el riesgo de daño accidental o malicioso y mantener la separación de funciones."
+  },
+
+  "modulo4": {
+    "titulo": "Módulo 4 · Modelo AAA",
+    "introduccion": "Identifica si cada situación corresponde a Autenticación, Autorización o Contabilidad/Auditoría (Accounting).",
+    "conceptos": [
+      { "id": "autenticacion", "nombre": "Authentication (Autenticación)", "descripcion": "Comprobar quién es el usuario." },
+      { "id": "autorizacion", "nombre": "Authorization (Autorización)", "descripcion": "Determinar qué puede hacer ese usuario." },
+      { "id": "auditoria", "nombre": "Accounting (Contabilidad / Auditoría)", "descripcion": "Registrar qué hizo el usuario." }
+    ],
+    "situaciones": [
+      {
+        "id": "s1",
+        "texto": "Un usuario ingresa con contraseña y segundo factor.",
+        "respuestaCorrecta": "autenticacion",
+        "explicacion": "Se está verificando la identidad del usuario mediante dos factores; corresponde a autenticación."
+      },
+      {
+        "id": "s2",
+        "texto": "Un operador puede consultar rutas, pero no eliminarlas.",
+        "respuestaCorrecta": "autorizacion",
+        "explicacion": "Se define qué acciones puede realizar un usuario ya identificado; corresponde a autorización."
+      },
+      {
+        "id": "s3",
+        "texto": "El sistema registra que una supervisora modificó una ruta.",
+        "respuestaCorrecta": "auditoria",
+        "explicacion": "Se está dejando constancia de una acción ya realizada; corresponde a contabilidad/auditoría."
+      },
+      {
+        "id": "s4",
+        "texto": "Un proveedor intenta ingresar a un sistema no autorizado.",
+        "respuestaCorrecta": "autorizacion",
+        "explicacion": "Aunque el proveedor puede estar autenticado, el sistema evalúa si tiene permiso sobre ese recurso; el intento fallido corresponde a un control de autorización."
+      }
+    ]
+  },
+
+  "modulo5": {
+    "titulo": "Módulo 5 · Análisis de registros (logs)",
+    "introduccion": "Revisa el siguiente registro de actividad y marca los eventos que consideres sospechosos. Luego responde las preguntas de análisis.",
+    "logs": [
+      { "id": "l1", "fecha": "2026-08-03", "hora": "09:14", "usuario": "jperez", "ip": "10.20.1.15", "recurso": "Sistema de pedidos", "accion": "Consultar", "resultado": "Éxito", "sospechoso": false, "motivo": "Acceso normal en horario laboral desde red interna." },
+      { "id": "l2", "fecha": "2026-08-03", "hora": "09:20", "usuario": "mrivas", "ip": "10.20.1.22", "recurso": "Sistema de despacho", "accion": "Crear", "resultado": "Éxito", "sospechoso": false, "motivo": "Actividad esperada de un supervisor en horario laboral." },
+      { "id": "l3", "fecha": "2026-08-04", "hora": "03:12", "usuario": "admin", "ip": "187.62.44.9", "recurso": "Configuración de red", "accion": "Ingresar", "resultado": "Fallido", "sospechoso": true, "motivo": "Intento de acceso a una cuenta administrativa en horario no laboral desde una IP externa desconocida." },
+      { "id": "l4", "fecha": "2026-08-04", "hora": "03:13", "usuario": "admin", "ip": "187.62.44.9", "recurso": "Configuración de red", "accion": "Ingresar", "resultado": "Fallido", "sospechoso": true, "motivo": "Segundo intento fallido consecutivo, mismo patrón sospechoso." },
+      { "id": "l5", "fecha": "2026-08-04", "hora": "03:15", "usuario": "admin", "ip": "187.62.44.9", "recurso": "Configuración de red", "accion": "Ingresar", "resultado": "Éxito", "sospechoso": true, "motivo": "Tras varios intentos fallidos, la cuenta administrativa logra ingresar desde una IP externa desconocida: fuerte indicio de compromiso." },
+      { "id": "l6", "fecha": "2026-08-04", "hora": "03:18", "usuario": "admin", "ip": "187.62.44.9", "recurso": "Registros de temperatura", "accion": "Modificar", "resultado": "Éxito", "sospechoso": true, "motivo": "Modificación de un registro crítico (temperatura) inmediatamente después de un ingreso sospechoso." },
+      { "id": "l7", "fecha": "2026-08-04", "hora": "03:20", "usuario": "admin", "ip": "187.62.44.9", "recurso": "Servidor de despacho", "accion": "Ingresar", "resultado": "Fallido", "sospechoso": true, "motivo": "Intento de acceder a un sistema adicional (despacho) desde la misma sesión comprometida." },
+      { "id": "l8", "fecha": "2026-08-04", "hora": "10:05", "usuario": "cvidal", "ip": "10.20.1.40", "recurso": "Reportes de operación", "accion": "Consultar", "resultado": "Éxito", "sospechoso": false, "motivo": "Actividad normal en horario laboral desde red interna." },
+      { "id": "l9", "fecha": "2026-08-04", "hora": "14:47", "usuario": "proveedor1", "ip": "10.20.1.15", "recurso": "Gestión de usuarios", "accion": "Ingresar", "resultado": "Fallido", "sospechoso": true, "motivo": "Un proveedor externo no debería intentar acceder a gestión de usuarios; además la IP corresponde a un rango interno que no le pertenece." },
+      { "id": "l10", "fecha": "2026-08-05", "hora": "08:58", "usuario": "jperez", "ip": "10.20.1.15", "recurso": "Sistema de pedidos", "accion": "Consultar", "resultado": "Éxito", "sospechoso": false, "motivo": "Acceso normal en horario laboral desde red interna." }
+    ],
+    "preguntasAnalisis": [
+      { "id": "p1", "texto": "¿Qué usuario(s) y/o cuenta(s) podrían estar comprometidos? Justifica con base en los registros." },
+      { "id": "p2", "texto": "¿Qué acciones del registro ameritan una investigación prioritaria?" },
+      { "id": "p3", "texto": "¿Qué evidencias del registro deberían conservarse y por qué?" },
+      { "id": "p4", "texto": "¿Qué medidas de respuesta recomendarías a partir de este análisis?" }
+    ]
+  },
+
+  "modulo6": {
+    "titulo": "Módulo 6 · Caso integrador",
+    "escenario": "Durante la madrugada se detectan varios intentos fallidos de acceso a la cuenta del administrador. Posteriormente, la cuenta logra ingresar desde una dirección IP desconocida. Se modifica un registro de temperatura y se intenta acceder al servidor de despacho.",
+    "preguntas": [
+      {
+        "id": "q1",
+        "texto": "¿Qué controles de red deberían intervenir?",
+        "conceptosEsperados": ["Firewall / control de acceso perimetral", "Segmentación de red (servidores separados de acceso remoto)", "Detección de intentos de fuerza bruta", "Restricción de acceso administrativo por IP/horario"]
+      },
+      {
+        "id": "q2",
+        "texto": "¿Qué regla de firewall revisarías?",
+        "conceptosEsperados": ["La regla que permite el acceso administrativo remoto", "Verificar si el acceso administrativo desde IPs externas está permitido y con qué alcance", "Revisar si existe registro (logging) de esa regla"]
+      },
+      {
+        "id": "q3",
+        "texto": "¿La autenticación fue suficiente?",
+        "conceptosEsperados": ["No: probablemente solo usaba contraseña, sin segundo factor", "Múltiples intentos fallidos sugieren ausencia de bloqueo de cuenta (account lockout)", "Falta de autenticación multifactor para cuentas administrativas"]
+      },
+      {
+        "id": "q4",
+        "texto": "¿Qué autorización pudo estar mal configurada?",
+        "conceptosEsperados": ["La cuenta admin con permisos excesivos sobre registros de temperatura y servidor de despacho", "Falta de separación de funciones", "Posible ausencia de restricciones de acceso remoto para cuentas administrativas"]
+      },
+      {
+        "id": "q5",
+        "texto": "¿Qué registros deberían conservarse?",
+        "conceptosEsperados": ["Logs de los intentos fallidos y el ingreso exitoso", "Logs de la modificación del registro de temperatura", "Logs del intento de acceso al servidor de despacho", "Dirección IP de origen y marcas de tiempo"]
+      },
+      {
+        "id": "q6",
+        "texto": "¿Qué acción realizarías primero?",
+        "conceptosEsperados": ["Contener el incidente: deshabilitar o bloquear la cuenta comprometida", "Aislar el acceso desde la IP desconocida", "Preservar la evidencia antes de remediar"]
+      },
+      {
+        "id": "q7",
+        "texto": "¿Qué medida preventiva propondrías?",
+        "conceptosEsperados": ["Autenticación multifactor para cuentas administrativas", "Bloqueo de cuenta tras varios intentos fallidos", "Restricción geográfica/por IP para accesos administrativos remotos", "Alertas automáticas ante patrones de intentos fallidos seguidos de éxito"]
+      }
+    ]
+  },
+
+  "puntajes": {
+    "pesoModulo1": 100,
+    "pesoModulo2": 100,
+    "pesoModulo3": 100,
+    "pesoModulo4": 100,
+    "pesoModulo5": 100,
+    "pesoModulo6": 100,
+    "notaAprobacion": 60
+  }
+}

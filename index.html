@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSecure Lab · Laboratorio de Seguridad de Redes</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-mark">◈</span>
+      <div class="brand-text">
+        <h1>NetSecure Lab</h1>
+        <p>Laboratorio de Seguridad de Redes · Unidad 2</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="scoreBadge" class="score-badge" hidden>Puntaje: <strong id="scoreValue">0</strong>/600</span>
+      <button id="btnGuardar" class="btn btn-ghost">Guardar avance</button>
+      <button id="btnImprimir" class="btn btn-ghost">Imprimir informe</button>
+    </div>
+  </div>
+  <div class="progress-track" aria-hidden="true">
+    <div id="progressBar" class="progress-fill"></div>
+  </div>
+</header>
+
+<nav class="module-nav" id="moduleNav" aria-label="Navegación por módulos">
+  <button class="nav-btn" data-modulo="inicio">Inicio</button>
+  <button class="nav-btn" data-modulo="modulo1">1. Diseño de red</button>
+  <button class="nav-btn" data-modulo="modulo2">2. Firewall</button>
+  <button class="nav-btn" data-modulo="modulo3">3. Autenticación / Autorización</button>
+  <button class="nav-btn" data-modulo="modulo4">4. Modelo AAA</button>
+  <button class="nav-btn" data-modulo="modulo5">5. Análisis de registros</button>
+  <button class="nav-btn" data-modulo="modulo6">6. Caso integrador</button>
+  <button class="nav-btn" data-modulo="resumen">Resumen final</button>
+</nav>
+
+<main id="app" class="app-main">
+  <p class="loading">Cargando caso de estudio…</p>
+</main>
+
+<footer class="app-footer">
+  <p>NetSecure Lab — Herramienta educativa sin fines productivos. Los datos y registros mostrados son ficticios. No ingrese información real ni credenciales.</p>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/modulos.js"></script>
+</body>
+</html>
