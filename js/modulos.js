@@ -49,15 +49,19 @@ const Modulos = (function () {
       '</div>';
   }
 
-  /* Pone el botón "Revisar respuestas" en estado de carga mientras
-     la IA local analiza el texto (puede tardar unos segundos,
-     especialmente la primera vez que descarga el modelo). */
+  /* Pone el botón "Revisar respuestas" en estado de carga mientras se
+     evalúan las respuestas (puede tardar unos segundos si el modelo de
+     IA local aún se está descargando/inicializando). El texto es
+     neutro a propósito: en este punto todavía no se sabe si la IA
+     logrará actuar o si se usará el respaldo por palabras clave — eso
+     solo se indica después, en la retroalimentación, y solo si la IA
+     realmente participó. */
   function marcarAnalizando(analizando, yaCompletado) {
     const btn = document.getElementById("btnRevisar");
     if (!btn) return;
     btn.disabled = analizando;
     btn.textContent = analizando
-      ? "Analizando con IA…"
+      ? "Analizando respuestas…"
       : (yaCompletado ? "Volver a revisar" : "Revisar respuestas");
   }
 
@@ -786,6 +790,7 @@ const Modulos = (function () {
     // conceptos esperados (evaluada con IA local si está disponible; si no,
     // cae a coincidencia de palabras clave — ver js/ia.js).
     let puntosPreguntas = 0;
+    let usoIA = false; // true solo si la IA local llegó a actuar en al menos una pregunta
     const textos = respuestas.respuestas || {};
     for (const p of M.preguntasAnalisis) {
       const t = (textos[p.id] || "").trim();
@@ -796,6 +801,7 @@ const Modulos = (function () {
         const r = window.IA
           ? await window.IA.calcularCoincidencias(t, p.conceptosEsperados)
           : { hits: 0 };
+        if (r.metodo === "ia") usoIA = true;
         if (r.hits >= 1) fraccion = Math.max(fraccion, 0.85);
         if (r.hits >= 2) fraccion = 1;
       }
@@ -828,7 +834,8 @@ const Modulos = (function () {
         titulo: "Preguntas de análisis",
         verdict: puntosPreguntas >= 25 ? "ok" : puntosPreguntas >= 10 ? "warn" : "bad",
         concepto: "La respuesta a un incidente debe documentar evidencias, cuentas afectadas y medidas de respuesta.",
-        motivo: puntosPreguntas >= 25 ? "Tus respuestas muestran un análisis desarrollado." : "Tus respuestas podrían desarrollarse con más detalle.",
+        motivo: (puntosPreguntas >= 25 ? "Tus respuestas muestran un análisis desarrollado." : "Tus respuestas podrían desarrollarse con más detalle.")
+          + (usoIA ? " (Evaluado con ayuda de un modelo de IA que corrió en tu navegador.)" : ""),
         riesgo: undefined,
         mejora: puntosPreguntas >= 25 ? undefined : "Menciona explícitamente qué logs conservarías como evidencia y qué acción tomarías primero (por ejemplo, bloquear la cuenta afectada)."
       }
