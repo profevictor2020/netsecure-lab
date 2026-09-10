@@ -18,7 +18,8 @@ netsecure-lab/
 ├── js/
 │   ├── config.js           → registro de casos de estudio disponibles
 │   ├── app.js               → núcleo: navegación, estado, guardado, progreso, informe
-│   └── modulos.js           → renderizado y evaluación pedagógica de los 6 módulos
+│   ├── modulos.js           → renderizado y evaluación pedagógica de los 10 módulos
+│   └── ia.js                → evaluación semántica local (IA) de respuestas de texto libre
 ├── data/
 │   └── casos/
 │       └── friosur.json    → datos editables del caso "FríoSur Distribución"
@@ -78,8 +79,8 @@ Todo el contenido pedagógico vive en **`data/casos/friosur.json`**. No es neces
 ### Dónde se ajusta el puntaje
 
 - `puntajes.notaAprobacion`: porcentaje mínimo (sobre 100%) para que el resumen final muestre "Nivel logrado".
-- Cada módulo se evalúa sobre 100 puntos y todos tienen el mismo peso en el puntaje total (600 puntos posibles). Si se requiere ponderar módulos de forma distinta, se debe ajustar la función `calcularPuntajeTotal()` en `js/app.js`.
-- La lógica de cálculo detallada de cada módulo está en `js/modulos.js`, en las funciones `evaluarModulo1` a `evaluarModulo6`, con comentarios explicativos. Los criterios de evaluación de mayor peso conceptual (por ejemplo, los 5 criterios del módulo 1) están descritos también dentro del JSON (`modulo1.criterios`) para quien solo quiera ajustar los textos.
+- Cada módulo se evalúa sobre 100 puntos y todos tienen el mismo peso en el puntaje total (1000 puntos posibles, 10 módulos). Si se requiere ponderar módulos de forma distinta, se debe ajustar la función `calcularPuntajeTotal()` en `js/app.js`.
+- La lógica de cálculo detallada de cada módulo está en `js/modulos.js`, en las funciones `evaluarModulo1` a `evaluarModulo10`, con comentarios explicativos. Los criterios de evaluación de mayor peso conceptual (por ejemplo, los 5 criterios del módulo 1) están descritos también dentro del JSON (`modulo1.criterios`) para quien solo quiera ajustar los textos.
 
 ---
 
@@ -97,7 +98,7 @@ La aplicación está preparada para soportar más de un caso de estudio sin dupl
 
 4. El caso puede seleccionarse agregando `?caso=banca` a la URL de la aplicación (por ejemplo, `https://tu-usuario.github.io/netsecure-lab/?caso=banca`). Si no se indica ningún parámetro, se carga el primer caso de la lista.
 
-No es necesario modificar `index.html`, `app.js` ni `modulos.js` para agregar un caso nuevo: toda la estructura de módulos (diseño de red, firewall, autenticación/autorización, AAA, logs, caso integrador) es genérica y se alimenta del archivo JSON correspondiente.
+No es necesario modificar `index.html`, `app.js` ni `modulos.js` para agregar un caso nuevo: toda la estructura de los 10 módulos es genérica y se alimenta del archivo JSON correspondiente (para casos ya existentes; agregar un módulo *nuevo* al laboratorio sí requiere tocar código — ver más abajo).
 
 ---
 
@@ -109,8 +110,21 @@ No es necesario modificar `index.html`, `app.js` ni `modulos.js` para agregar un
 4. **Modelo AAA** — clasificación de situaciones como autenticación, autorización o auditoría (accounting).
 5. **Análisis de registros (logs)** — identificación de eventos sospechosos en una bitácora de actividad y preguntas de análisis.
 6. **Caso integrador** — escenario de incidente con siete preguntas abiertas de respuesta y contención.
+7. **Protección de dispositivos de red** — para cada dispositivo (router, switch, punto de acceso Wi-Fi, servidor), el estudiante selecciona los controles de hardening adecuados entre opciones correctas y distractores riesgosos, y justifica una consecuencia concreta.
+8. **Diseño de VPN de acceso remoto** — para distintos perfiles (proveedor externo, administrador y operador en teletrabajo), el estudiante define tipo de acceso, autenticación exigida, recursos permitidos (mínimo privilegio) y restricciones adicionales.
+9. **Servidor AAA en acción** — para cada escenario de acceso, el estudiante determina el resultado de autenticación, la decisión de autorización y qué campos debe registrar el accounting, relacionando usuario, servicio, permisos y registro de actividad.
+10. **Análisis de riesgo de red** — para cada par activo/amenaza con su vulnerabilidad, el estudiante evalúa el nivel de impacto y selecciona los controles que corresponden, cerrando el ciclo activo → amenaza → vulnerabilidad → impacto → control.
 
 Cada módulo entrega retroalimentación explicando el concepto aplicado, por qué una decisión es adecuada, qué riesgo se reduce, qué error conceptual se cometió y cómo mejorar la respuesta — no solo "correcto/incorrecto". El sistema **no revela las respuestas correctas antes de que el estudiante presione "Revisar respuestas"**.
+
+### Cómo agregar un módulo nuevo al laboratorio (no solo un caso)
+
+A diferencia de agregar un *caso* (solo JSON), agregar un *módulo* nuevo sí requiere tocar código, porque la lista de módulos está fija:
+
+1. Agrega el id (por ejemplo `"modulo11"`) a `MODULOS_ORDEN` en [js/app.js](js/app.js).
+2. Agrega el botón de navegación correspondiente en [index.html](index.html).
+3. Escribe `renderModulo11(app, CASO, state)` y `evaluarModulo11(M, respuestas)` en [js/modulos.js](js/modulos.js), siguiendo el patrón de los módulos existentes (tabla + radios/checkboxes + `feedbackBoxHTML`), y regístralo en el objeto `renderers` del dispatcher.
+4. Agrega el bloque `"modulo11": { ... }` correspondiente en `data/casos/<archivo>.json`.
 
 Al final, el **Resumen final** muestra el puntaje por módulo y el puntaje total, y permite descargar los resultados en JSON o imprimir un informe (usa la función de impresión del navegador, con un estilo optimizado para papel).
 

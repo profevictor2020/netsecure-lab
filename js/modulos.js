@@ -87,7 +87,7 @@ const Modulos = (function () {
         <label class="field-label" for="inputAlumno">Nombre del estudiante (opcional, solo se guarda en este navegador)</label>
         <input class="full" type="text" id="inputAlumno" maxlength="80" placeholder="Ej: Juan Pérez" value="${esc(state.alumno)}">
         <p style="margin-top:16px;color:var(--text-muted);font-size:13px">
-          El laboratorio tiene 6 módulos. Puedes navegar entre ellos con el menú superior. Tu avance se puede guardar
+          El laboratorio tiene 10 módulos. Puedes navegar entre ellos con el menú superior. Tu avance se puede guardar
           en este navegador con el botón <strong>Guardar avance</strong>. Al finalizar, revisa el resumen final para
           descargar o imprimir tu informe.
         </p>
@@ -116,7 +116,8 @@ const Modulos = (function () {
   function renderModulo(app, CASO, state, id) {
     const renderers = {
       modulo1: renderModulo1, modulo2: renderModulo2, modulo3: renderModulo3,
-      modulo4: renderModulo4, modulo5: renderModulo5, modulo6: renderModulo6
+      modulo4: renderModulo4, modulo5: renderModulo5, modulo6: renderModulo6,
+      modulo7: renderModulo7, modulo8: renderModulo8, modulo9: renderModulo9, modulo10: renderModulo10
     };
     renderers[id](app, CASO, state);
   }
@@ -933,6 +934,529 @@ const Modulos = (function () {
     }
 
     return { score: Math.round(puntosTotales), feedback };
+  }
+
+  /* ============================================================
+     MÓDULO 7 — PROTECCIÓN DE DISPOSITIVOS DE RED
+     ============================================================ */
+  function renderModulo7(app, CASO, state) {
+    const M = CASO.modulo7;
+    const guardado = state.respuestas.modulo7 || { asignaciones: {}, justificacion: "" };
+    const yaCompletado = !!(state.resultados.modulo7 && state.resultados.modulo7.completado);
+
+    const filas = M.dispositivos.map((d) => {
+      const seleccion = guardado.asignaciones[d.id] || [];
+      const checks = M.controles.map((c) => `
+        <label><input type="checkbox" data-disp="${d.id}" value="${c.id}" ${seleccion.includes(c.id) ? "checked" : ""}> ${esc(c.nombre)}</label>
+      `).join("");
+      return `
+        <tr>
+          <td><strong>${esc(d.nombre)}</strong><div class="zone-desc">${esc(d.descripcion)}</div></td>
+          <td><div class="matrix-actions">${checks}</div></td>
+        </tr>`;
+    }).join("");
+
+    app.appendChild(el(`
+      <section class="panel">
+        <span class="tag">${esc(M.titulo)}</span>
+        <h2>Protección de dispositivos de red</h2>
+        <p class="intro-text">${esc(M.introduccion)}</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Dispositivo</th><th>Controles a aplicar</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+        <label class="field-label" for="justificacion7">${esc(M.preguntaJustificacion)}</label>
+        <textarea class="full" id="justificacion7" placeholder="Explica qué podría pasar si ese control no se aplicara...">${esc(guardado.justificacion)}</textarea>
+        <div id="feedbackContainer7"></div>
+        ${moduleActionsHTML("modulo7", yaCompletado)}
+      </section>
+    `));
+
+    function recolectar() {
+      const asignaciones = {};
+      M.dispositivos.forEach((d) => {
+        asignaciones[d.id] = Array.from(document.querySelectorAll(`input[data-disp="${d.id}"]:checked`)).map((c) => c.value);
+      });
+      return { asignaciones, justificacion: document.getElementById("justificacion7").value };
+    }
+
+    document.getElementById("btnGuardarModulo").addEventListener("click", () => {
+      NSL.guardarRespuestas("modulo7", recolectar());
+      NSL.guardarEstado(true);
+    });
+
+    document.getElementById("btnRevisar").addEventListener("click", async () => {
+      const respuestas = recolectar();
+      NSL.guardarRespuestas("modulo7", respuestas);
+      marcarAnalizando(true);
+      const resultado = await evaluarModulo7(M, respuestas);
+      marcarAnalizando(false, true);
+      NSL.registrarResultado("modulo7", resultado);
+      document.getElementById("feedbackContainer7").innerHTML = feedbackBoxHTML(resultado.score, resultado.feedback);
+      NSL.guardarEstado(false);
+      document.getElementById("feedbackContainer7").scrollIntoView({ behavior: "smooth" });
+    });
+
+    if (yaCompletado) {
+      const r = state.resultados.modulo7;
+      document.getElementById("feedbackContainer7").innerHTML = feedbackBoxHTML(r.score, r.feedback);
+    }
+  }
+
+  async function evaluarModulo7(M, respuestas) {
+    const asign = respuestas.asignaciones || {};
+    const controlesPorId = {};
+    M.controles.forEach((c) => (controlesPorId[c.id] = c));
+
+    let sumaExactitud = 0;
+    const feedbackDispositivos = [];
+    const riesgosSeleccionados = new Set();
+
+    M.dispositivos.forEach((d) => {
+      const correctoSet = new Set(M.controlesCorrectos[d.id] || []);
+      const estudianteSet = new Set(asign[d.id] || []);
+      const union = new Set([...correctoSet, ...estudianteSet]);
+      let interseccion = 0;
+      union.forEach((c) => { if (correctoSet.has(c) && estudianteSet.has(c)) interseccion++; });
+      const exactitud = union.size === 0 ? 1 : interseccion / union.size;
+      sumaExactitud += exactitud;
+
+      const faltantes = [...correctoSet].filter((c) => !estudianteSet.has(c));
+      const riesgosos = [...estudianteSet].filter((c) => M.controlesRiesgosos.includes(c));
+      riesgosos.forEach((r) => riesgosSeleccionados.add(r));
+
+      const verdict = exactitud >= 0.85 ? "ok" : exactitud >= 0.5 ? "warn" : "bad";
+      feedbackDispositivos.push({
+        titulo: d.nombre,
+        verdict,
+        concepto: "Cada dispositivo debe protegerse con controles básicos de hardening: credenciales propias, gestión cifrada y restringida, y actualización.",
+        motivo: verdict === "ok"
+          ? "Seleccionaste un conjunto de controles adecuado para este dispositivo."
+          : (faltantes.length > 0
+              ? "Te faltaron controles importantes: " + faltantes.map((id) => controlesPorId[id].nombre).join(", ") + "."
+              : "El conjunto de controles seleccionado no es el más adecuado para este dispositivo."),
+        riesgo: riesgosos.length > 0
+          ? "Marcaste controles riesgosos para este dispositivo: " + riesgosos.map((id) => controlesPorId[id].nombre).join(", ") + "."
+          : undefined,
+        mejora: verdict === "ok" ? undefined : "Revisa qué controles básicos (credenciales, gestión cifrada, actualización) le faltan a " + d.nombre + "."
+      });
+    });
+
+    const pctCorrecto = sumaExactitud / M.dispositivos.length;
+
+    const texto = (respuestas.justificacion || "").trim();
+    let fraccionJust = 0;
+    if (texto.length >= 15) fraccionJust = 0.4;
+    if (texto.length >= 40) fraccionJust = Math.max(fraccionJust, 0.55);
+    let metodoJust = "vacio";
+    if (texto && M.conceptosJustificacion && M.conceptosJustificacion.length) {
+      const r = window.IA ? await window.IA.calcularCoincidencias(texto, M.conceptosJustificacion) : { hits: 0 };
+      metodoJust = r.metodo;
+      if (r.hits >= 1) fraccionJust = Math.max(fraccionJust, 0.85);
+      if (r.hits >= 2) fraccionJust = 1;
+    }
+
+    const score = Math.round(pctCorrecto * 70 + fraccionJust * 30);
+
+    const feedback = [
+      ...feedbackDispositivos,
+      {
+        titulo: "Controles riesgosos evitados",
+        verdict: riesgosSeleccionados.size === 0 ? "ok" : riesgosSeleccionados.size <= 2 ? "warn" : "bad",
+        concepto: "Algunas prácticas parecen convenientes pero introducen riesgo: gestión sin restricción, credenciales compartidas, desactivar registros o dejar redes abiertas.",
+        motivo: riesgosSeleccionados.size === 0
+          ? "No marcaste ninguno de los controles riesgosos incluidos como distractor."
+          : "Marcaste como buena práctica: " + [...riesgosSeleccionados].map((id) => controlesPorId[id].nombre).join("; ") + ".",
+        riesgo: riesgosSeleccionados.size > 0 ? "Estas prácticas amplían la superficie de ataque o dificultan detectar un incidente." : undefined,
+        mejora: riesgosSeleccionados.size === 0 ? undefined : "Revisa por qué esas opciones son riesgosas y quítalas de tu selección."
+      },
+      {
+        titulo: "Justificación",
+        verdict: fraccionJust >= 0.7 ? "ok" : fraccionJust >= 0.4 ? "warn" : "bad",
+        concepto: "Reconocer qué pasaría sin un control ayuda a entender por qué es necesario, no solo a memorizar una lista.",
+        motivo: texto
+          ? "Tu respuesta fue registrada" + (metodoJust === "ia" ? " y comparada con IA local" : "") + " con los conceptos esperados."
+          : "No respondiste la justificación.",
+        riesgo: undefined,
+        mejora: fraccionJust >= 0.7 ? undefined : "Explica en concreto qué podría hacer un atacante si ese control no estuviera aplicado."
+      }
+    ];
+
+    return { score, feedback };
+  }
+
+  /* ============================================================
+     MÓDULO 8 — DISEÑO DE VPN DE ACCESO REMOTO
+     ============================================================ */
+  function renderModulo8(app, CASO, state) {
+    const M = CASO.modulo8;
+    const guardado = state.respuestas.modulo8 || {};
+    const yaCompletado = !!(state.resultados.modulo8 && state.resultados.modulo8.completado);
+
+    const perfilesHTML = M.perfiles.map((p) => {
+      const g = guardado[p.id] || { tipoAcceso: "", autenticacion: [], recursos: [], restricciones: [] };
+      const tipoHTML = M.tiposAcceso.map((t) => `
+        <label><input type="radio" name="tipo-${p.id}" value="${t.id}" ${g.tipoAcceso === t.id ? "checked" : ""}> ${esc(t.nombre)}</label>
+      `).join("");
+      const authHTML = M.autenticacion.map((a) => `
+        <label><input type="checkbox" data-auth="${p.id}" value="${a.id}" ${(g.autenticacion || []).includes(a.id) ? "checked" : ""}> ${esc(a.nombre)}</label>
+      `).join("");
+      const recHTML = M.recursos.map((r) => `
+        <label><input type="checkbox" data-rec="${p.id}" value="${r.id}" ${(g.recursos || []).includes(r.id) ? "checked" : ""}> ${esc(r.nombre)}</label>
+      `).join("");
+      const restHTML = M.restricciones.map((r) => `
+        <label><input type="checkbox" data-rest="${p.id}" value="${r.id}" ${(g.restricciones || []).includes(r.id) ? "checked" : ""}> ${esc(r.nombre)}</label>
+      `).join("");
+      return `
+        <div class="case-card" style="padding:16px">
+          <h4 style="font-size:14.5px">${esc(p.nombre)}</h4>
+          <p>${esc(p.descripcion)}</p>
+          <label class="field-label" style="margin-top:12px">Tipo de acceso</label>
+          <div class="radio-row">${tipoHTML}</div>
+          <label class="field-label" style="margin-top:12px">Autenticación requerida</label>
+          <div class="matrix-actions">${authHTML}</div>
+          <label class="field-label" style="margin-top:12px">Recursos permitidos</label>
+          <div class="matrix-actions">${recHTML}</div>
+          <label class="field-label" style="margin-top:12px">Restricciones adicionales</label>
+          <div class="matrix-actions">${restHTML}</div>
+        </div>`;
+    }).join("");
+
+    app.appendChild(el(`
+      <section class="panel">
+        <span class="tag">${esc(M.titulo)}</span>
+        <h2>Diseño de VPN de acceso remoto</h2>
+        <p class="intro-text">${esc(M.introduccion)}</p>
+        <div class="case-brief" style="grid-template-columns:1fr">${perfilesHTML}</div>
+        <div id="feedbackContainer8"></div>
+        ${moduleActionsHTML("modulo8", yaCompletado)}
+      </section>
+    `));
+
+    function recolectar() {
+      const out = {};
+      M.perfiles.forEach((p) => {
+        const tipoSel = document.querySelector(`input[name="tipo-${p.id}"]:checked`);
+        out[p.id] = {
+          tipoAcceso: tipoSel ? tipoSel.value : "",
+          autenticacion: Array.from(document.querySelectorAll(`input[data-auth="${p.id}"]:checked`)).map((c) => c.value),
+          recursos: Array.from(document.querySelectorAll(`input[data-rec="${p.id}"]:checked`)).map((c) => c.value),
+          restricciones: Array.from(document.querySelectorAll(`input[data-rest="${p.id}"]:checked`)).map((c) => c.value)
+        };
+      });
+      return out;
+    }
+
+    document.getElementById("btnGuardarModulo").addEventListener("click", () => {
+      NSL.guardarRespuestas("modulo8", recolectar());
+      NSL.guardarEstado(true);
+    });
+
+    document.getElementById("btnRevisar").addEventListener("click", () => {
+      const respuestas = recolectar();
+      NSL.guardarRespuestas("modulo8", respuestas);
+      const resultado = evaluarModulo8(M, respuestas);
+      NSL.registrarResultado("modulo8", resultado);
+      document.getElementById("feedbackContainer8").innerHTML = feedbackBoxHTML(resultado.score, resultado.feedback);
+      NSL.guardarEstado(false);
+      document.getElementById("feedbackContainer8").scrollIntoView({ behavior: "smooth" });
+    });
+
+    if (yaCompletado) {
+      const r = state.resultados.modulo8;
+      document.getElementById("feedbackContainer8").innerHTML = feedbackBoxHTML(r.score, r.feedback);
+    }
+  }
+
+  function jaccard(correctoArr, estudianteArr) {
+    const correctoSet = new Set(correctoArr || []);
+    const estudianteSet = new Set(estudianteArr || []);
+    const union = new Set([...correctoSet, ...estudianteSet]);
+    if (union.size === 0) return 1;
+    let interseccion = 0;
+    union.forEach((v) => { if (correctoSet.has(v) && estudianteSet.has(v)) interseccion++; });
+    return interseccion / union.size;
+  }
+
+  function evaluarModulo8(M, respuestas) {
+    const nombresPorId = {};
+    M.autenticacion.forEach((a) => (nombresPorId[a.id] = a.nombre));
+    M.recursos.forEach((r) => (nombresPorId[r.id] = r.nombre));
+    M.restricciones.forEach((r) => (nombresPorId[r.id] = r.nombre));
+
+    let sumaExactitud = 0;
+    let cuentas = 0;
+    const feedback = [];
+
+    M.perfiles.forEach((p) => {
+      const correcto = M.configuracionCorrecta[p.id];
+      const est = respuestas[p.id] || { tipoAcceso: "", autenticacion: [], recursos: [], restricciones: [] };
+
+      const tipoOk = est.tipoAcceso === correcto.tipoAcceso;
+      const jAuth = jaccard(correcto.autenticacion, est.autenticacion);
+      const jRec = jaccard(correcto.recursos, est.recursos);
+      const jRest = jaccard(correcto.restricciones, est.restricciones);
+      const exactitud = (tipoOk ? 1 : 0) * 0.25 + jAuth * 0.25 + jRec * 0.3 + jRest * 0.2;
+      sumaExactitud += exactitud;
+      cuentas++;
+
+      const verdict = exactitud >= 0.85 ? "ok" : exactitud >= 0.55 ? "warn" : "bad";
+      const problemas = [];
+      if (!tipoOk) problemas.push("el tipo de acceso no es el más adecuado para este perfil");
+      if (jRec < 0.7) problemas.push("los recursos permitidos no respetan bien el mínimo privilegio");
+      if (jAuth < 0.7) problemas.push("la autenticación exigida es insuficiente o excesiva para el riesgo del perfil");
+      if (jRest < 0.7) problemas.push("faltan restricciones adicionales recomendadas (IP, registro de sesión, horario)");
+
+      feedback.push({
+        titulo: p.nombre,
+        verdict,
+        concepto: "Una VPN de acceso remoto debe usar el tipo de conexión adecuado, exigir una autenticación proporcional al riesgo, limitar los recursos al mínimo necesario y aplicar restricciones adicionales.",
+        motivo: problemas.length === 0
+          ? "La configuración de este perfil está bien resuelta: acceso, autenticación, recursos y restricciones son consistentes con el riesgo del perfil."
+          : "Puntos a revisar: " + problemas.join("; ") + ".",
+        riesgo: problemas.length > 0 ? "Una VPN mal configurada puede dar más acceso del necesario o quedar sin trazabilidad ante un incidente." : undefined,
+        mejora: problemas.length === 0 ? undefined : "Revisa el perfil considerando qué necesita realmente para su función, ni más ni menos."
+      });
+    });
+
+    const score = Math.round((sumaExactitud / cuentas) * 100);
+    return { score, feedback };
+  }
+
+  /* ============================================================
+     MÓDULO 9 — SERVIDOR AAA EN ACCIÓN
+     ============================================================ */
+  function renderModulo9(app, CASO, state) {
+    const M = CASO.modulo9;
+    const guardado = state.respuestas.modulo9 || {};
+    const yaCompletado = !!(state.resultados.modulo9 && state.resultados.modulo9.completado);
+
+    const filas = M.escenarios.map((e) => {
+      const g = guardado[e.id] || { autenticacion: "", autorizacion: "", registro: [] };
+      const authHTML = M.opcionesAutenticacion.map((o) => `
+        <label><input type="radio" name="auth-${e.id}" value="${o.id}" ${g.autenticacion === o.id ? "checked" : ""}> ${esc(o.nombre)}</label>
+      `).join("");
+      const autzHTML = M.opcionesAutorizacion.map((o) => `
+        <label><input type="radio" name="autz-${e.id}" value="${o.id}" ${g.autorizacion === o.id ? "checked" : ""}> ${esc(o.nombre)}</label>
+      `).join("");
+      const regHTML = M.camposRegistro.map((c) => `
+        <label><input type="checkbox" data-reg="${e.id}" value="${c.id}" ${(g.registro || []).includes(c.id) ? "checked" : ""}> ${esc(c.nombre)}</label>
+      `).join("");
+      return `
+        <tr>
+          <td>${esc(e.texto)}</td>
+          <td><div class="decision-group">${authHTML}</div></td>
+          <td><div class="decision-group">${autzHTML}</div></td>
+          <td><div class="matrix-actions">${regHTML}</div></td>
+        </tr>`;
+    }).join("");
+
+    app.appendChild(el(`
+      <section class="panel">
+        <span class="tag">${esc(M.titulo)}</span>
+        <h2>Servidor AAA en acción</h2>
+        <p class="intro-text">${esc(M.introduccion)}</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Escenario</th><th>Authentication</th><th>Authorization</th><th>Accounting: qué registrar</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+        <div id="feedbackContainer9"></div>
+        ${moduleActionsHTML("modulo9", yaCompletado)}
+      </section>
+    `));
+
+    function recolectar() {
+      const out = {};
+      M.escenarios.forEach((e) => {
+        const authSel = document.querySelector(`input[name="auth-${e.id}"]:checked`);
+        const autzSel = document.querySelector(`input[name="autz-${e.id}"]:checked`);
+        out[e.id] = {
+          autenticacion: authSel ? authSel.value : "",
+          autorizacion: autzSel ? autzSel.value : "",
+          registro: Array.from(document.querySelectorAll(`input[data-reg="${e.id}"]:checked`)).map((c) => c.value)
+        };
+      });
+      return out;
+    }
+
+    document.getElementById("btnGuardarModulo").addEventListener("click", () => {
+      NSL.guardarRespuestas("modulo9", recolectar());
+      NSL.guardarEstado(true);
+    });
+
+    document.getElementById("btnRevisar").addEventListener("click", () => {
+      const respuestas = recolectar();
+      NSL.guardarRespuestas("modulo9", respuestas);
+      const resultado = evaluarModulo9(M, respuestas);
+      NSL.registrarResultado("modulo9", resultado);
+      document.getElementById("feedbackContainer9").innerHTML = feedbackBoxHTML(resultado.score, resultado.feedback);
+      NSL.guardarEstado(false);
+      document.getElementById("feedbackContainer9").scrollIntoView({ behavior: "smooth" });
+    });
+
+    if (yaCompletado) {
+      const r = state.resultados.modulo9;
+      document.getElementById("feedbackContainer9").innerHTML = feedbackBoxHTML(r.score, r.feedback);
+    }
+  }
+
+  function evaluarModulo9(M, respuestas) {
+    const pesoEscenario = 100 / M.escenarios.length;
+    let puntosTotales = 0;
+    const feedback = [];
+
+    M.escenarios.forEach((e) => {
+      const resp = respuestas[e.id] || { autenticacion: "", autorizacion: "", registro: [] };
+      const authOk = resp.autenticacion === e.autenticacionCorrecta;
+      const autzOk = resp.autorizacion === e.autorizacionCorrecta;
+      const registroCompleto = M.camposRegistro.every((c) => (resp.registro || []).includes(c.id));
+      const puntos = (authOk ? 0.35 : 0) * pesoEscenario + (autzOk ? 0.35 : 0) * pesoEscenario + (registroCompleto ? 0.3 : 0) * pesoEscenario;
+      puntosTotales += puntos;
+
+      const verdict = authOk && autzOk && registroCompleto ? "ok" : authOk && autzOk ? "warn" : "bad";
+      const problemas = [];
+      if (!authOk) problemas.push("el resultado de autenticación no coincide con el escenario");
+      if (!autzOk) problemas.push("la decisión de autorización no es la correcta para este rol y recurso");
+      if (!registroCompleto) problemas.push("no marcaste todos los campos que el accounting debería registrar");
+
+      feedback.push({
+        titulo: e.texto,
+        verdict,
+        concepto: "El accounting siempre registra el evento completo (usuario, hora, recurso, resultado, IP), sin importar si el acceso fue exitoso, denegado o si falló la autenticación.",
+        motivo: problemas.length === 0 ? e.explicacion : "Revisa: " + problemas.join("; ") + ". " + e.explicacion,
+        riesgo: !registroCompleto ? "Un registro incompleto dificulta reconstruir qué pasó durante una investigación." : undefined,
+        mejora: verdict === "ok" ? undefined : "Vuelve a leer el escenario identificando primero si la credencial es válida (authentication), luego si el rol tiene permiso (authorization)."
+      });
+    });
+
+    return { score: Math.round(puntosTotales), feedback };
+  }
+
+  /* ============================================================
+     MÓDULO 10 — ANÁLISIS DE RIESGO DE RED
+     ============================================================ */
+  function renderModulo10(app, CASO, state) {
+    const M = CASO.modulo10;
+    const guardado = state.respuestas.modulo10 || { filas: {}, justificacion: "" };
+    const yaCompletado = !!(state.resultados.modulo10 && state.resultados.modulo10.completado);
+
+    const filas = M.filas.map((f) => {
+      const g = guardado.filas[f.id] || { impacto: "", controles: [] };
+      const impactoHTML = ["bajo", "medio", "alto"].map((niv) => `
+        <label><input type="radio" name="imp-${f.id}" value="${niv}" ${g.impacto === niv ? "checked" : ""}> ${niv[0].toUpperCase() + niv.slice(1)}</label>
+      `).join("");
+      const controlesHTML = M.controles.map((c) => `
+        <label><input type="checkbox" data-riesgo="${f.id}" value="${c.id}" ${(g.controles || []).includes(c.id) ? "checked" : ""}> ${esc(c.nombre)}</label>
+      `).join("");
+      return `
+        <tr>
+          <td><strong>${esc(f.activo)}</strong></td>
+          <td>${esc(f.amenaza)}</td>
+          <td>${esc(f.vulnerabilidad)}</td>
+          <td><div class="decision-group">${impactoHTML}</div></td>
+          <td><div class="matrix-actions">${controlesHTML}</div></td>
+        </tr>`;
+    }).join("");
+
+    app.appendChild(el(`
+      <section class="panel">
+        <span class="tag">${esc(M.titulo)}</span>
+        <h2>Análisis de riesgo de red</h2>
+        <p class="intro-text">${esc(M.introduccion)}</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Activo</th><th>Amenaza</th><th>Vulnerabilidad</th><th>Impacto</th><th>Control(es) recomendado(s)</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+        <label class="field-label" for="justificacion10">Elige una de las filas anteriores y explica qué pasaría si ninguno de los controles que propusiste se aplicara.</label>
+        <textarea class="full" id="justificacion10" placeholder="Explica la consecuencia concreta...">${esc(guardado.justificacion)}</textarea>
+        <div id="feedbackContainer10"></div>
+        ${moduleActionsHTML("modulo10", yaCompletado)}
+      </section>
+    `));
+
+    function recolectar() {
+      const filasOut = {};
+      M.filas.forEach((f) => {
+        const impSel = document.querySelector(`input[name="imp-${f.id}"]:checked`);
+        filasOut[f.id] = {
+          impacto: impSel ? impSel.value : "",
+          controles: Array.from(document.querySelectorAll(`input[data-riesgo="${f.id}"]:checked`)).map((c) => c.value)
+        };
+      });
+      return { filas: filasOut, justificacion: document.getElementById("justificacion10").value };
+    }
+
+    document.getElementById("btnGuardarModulo").addEventListener("click", () => {
+      NSL.guardarRespuestas("modulo10", recolectar());
+      NSL.guardarEstado(true);
+    });
+
+    document.getElementById("btnRevisar").addEventListener("click", () => {
+      const respuestas = recolectar();
+      NSL.guardarRespuestas("modulo10", respuestas);
+      const resultado = evaluarModulo10(M, respuestas);
+      NSL.registrarResultado("modulo10", resultado);
+      document.getElementById("feedbackContainer10").innerHTML = feedbackBoxHTML(resultado.score, resultado.feedback);
+      NSL.guardarEstado(false);
+      document.getElementById("feedbackContainer10").scrollIntoView({ behavior: "smooth" });
+    });
+
+    if (yaCompletado) {
+      const r = state.resultados.modulo10;
+      document.getElementById("feedbackContainer10").innerHTML = feedbackBoxHTML(r.score, r.feedback);
+    }
+  }
+
+  function evaluarModulo10(M, respuestas) {
+    const controlesPorId = {};
+    M.controles.forEach((c) => (controlesPorId[c.id] = c));
+    const filasResp = respuestas.filas || {};
+
+    let sumaExactitud = 0;
+    const feedback = [];
+
+    M.filas.forEach((f) => {
+      const est = filasResp[f.id] || { impacto: "", controles: [] };
+      const impactoOk = est.impacto === f.impactoCorrecto;
+      const jControles = jaccard(f.controlesCorrectos, est.controles);
+      const exactitud = (impactoOk ? 1 : 0) * 0.4 + jControles * 0.6;
+      sumaExactitud += exactitud;
+
+      const verdict = exactitud >= 0.85 ? "ok" : exactitud >= 0.5 ? "warn" : "bad";
+      feedback.push({
+        titulo: `${f.activo} — ${f.amenaza}`,
+        verdict,
+        concepto: "Vulnerabilidad: " + f.vulnerabilidad,
+        motivo: (impactoOk ? "Identificaste correctamente el nivel de impacto (" + f.impactoCorrecto + ")." : "El impacto correcto para este riesgo es " + f.impactoCorrecto + ".")
+          + " " + (jControles >= 0.85 ? "Los controles seleccionados son adecuados." : "Revisa qué controles de la lista realmente mitigan esta amenaza."),
+        riesgo: verdict !== "ok" ? "Subestimar el impacto o elegir controles que no atacan la causa real deja el riesgo sin mitigar." : undefined,
+        mejora: verdict === "ok" ? undefined : "Relaciona la vulnerabilidad descrita con los controles que la corrigen directamente."
+      });
+    });
+
+    const pctFilas = sumaExactitud / M.filas.length;
+
+    const texto = (respuestas.justificacion || "").trim();
+    const vJust = texto.length >= 40 ? "ok" : texto.length >= 15 ? "warn" : "bad";
+    const puntosJust = vJust === "ok" ? 1 : vJust === "warn" ? 0.5 : 0;
+
+    feedback.push({
+      titulo: "Justificación de consecuencias",
+      verdict: vJust,
+      concepto: "Un análisis de riesgo se valida explicando qué pasaría en la práctica si el control no existiera.",
+      motivo: vJust === "ok" ? "Desarrollaste una explicación concreta de la consecuencia de no aplicar el control." : "Tu explicación podría desarrollarse con más detalle.",
+      riesgo: undefined,
+      mejora: vJust === "ok" ? undefined : "Describe un escenario concreto: qué haría un atacante y qué dato o sistema se vería afectado."
+    });
+
+    const score = Math.round(pctFilas * 85 + puntosJust * 15);
+    return { score, feedback };
   }
 
   /* ============================================================

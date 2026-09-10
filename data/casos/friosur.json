@@ -301,6 +301,220 @@
     ]
   },
 
+  "modulo7": {
+    "titulo": "Módulo 7 · Protección de dispositivos de red",
+    "introduccion": "Un dispositivo de red mal configurado es tan riesgoso como una red mal segmentada. Para cada dispositivo, marca los controles de protección (hardening) que le aplicarías. Hay opciones incorrectas o riesgosas: elegirlas resta puntaje.",
+    "controles": [
+      { "id": "cred_default", "nombre": "Cambiar usuario y contraseña por defecto" },
+      { "id": "gestion_cifrada", "nombre": "Gestionar solo por protocolos cifrados (SSH/HTTPS), nunca Telnet/HTTP" },
+      { "id": "firmware_actualizado", "nombre": "Mantener firmware y software actualizado" },
+      { "id": "gestion_restringida", "nombre": "Restringir la gestión solo desde la red administrativa" },
+      { "id": "puertos_no_usados", "nombre": "Deshabilitar puertos/interfaces que no se usan" },
+      { "id": "banner_legal", "nombre": "Configurar un aviso legal de acceso restringido" },
+      { "id": "ssid_seguro", "nombre": "Cambiar el SSID por defecto, usar WPA2/WPA3 y deshabilitar WPS" },
+      { "id": "red_invitados_separada", "nombre": "Separar la red Wi-Fi de invitados de la red interna" },
+      { "id": "gestion_abierta", "nombre": "Permitir gestión remota desde cualquier red para facilitar soporte" },
+      { "id": "clave_compartida", "nombre": "Usar la misma contraseña de administración en todos los dispositivos" },
+      { "id": "desactivar_logs", "nombre": "Desactivar el registro de eventos para ahorrar espacio" },
+      { "id": "wifi_abierta", "nombre": "Dejar el punto de acceso sin contraseña, por comodidad" }
+    ],
+    "dispositivos": [
+      { "id": "router_perimetral", "nombre": "Router perimetral", "descripcion": "Conecta la red de FríoSur con Internet." },
+      { "id": "switch_acceso", "nombre": "Switch de acceso", "descripcion": "Conecta las estaciones de trabajo y servidores a la red interna." },
+      { "id": "punto_acceso_wifi", "nombre": "Punto de acceso Wi-Fi", "descripcion": "Provee conectividad inalámbrica en bodegas y oficinas." },
+      { "id": "servidor_aplicaciones", "nombre": "Servidor de aplicaciones", "descripcion": "Aloja el sistema de pedidos y el servidor de despacho." }
+    ],
+    "controlesCorrectos": {
+      "router_perimetral": ["cred_default", "gestion_cifrada", "firmware_actualizado", "gestion_restringida", "banner_legal"],
+      "switch_acceso": ["cred_default", "gestion_cifrada", "firmware_actualizado", "gestion_restringida", "puertos_no_usados"],
+      "punto_acceso_wifi": ["cred_default", "gestion_cifrada", "firmware_actualizado", "ssid_seguro", "red_invitados_separada"],
+      "servidor_aplicaciones": ["cred_default", "gestion_cifrada", "firmware_actualizado", "gestion_restringida", "banner_legal"]
+    },
+    "controlesRiesgosos": ["gestion_abierta", "clave_compartida", "desactivar_logs", "wifi_abierta"],
+    "preguntaJustificacion": "Elige uno de los controles riesgosos que NO marcaste y explica qué podría pasar si un dispositivo quedara configurado así.",
+    "conceptosJustificacion": ["Un atacante podría acceder sin credenciales válidas", "Facilita el movimiento lateral dentro de la red", "Dificulta detectar o investigar un incidente por falta de registros"]
+  },
+
+  "modulo8": {
+    "titulo": "Módulo 8 · Diseño de VPN de acceso remoto",
+    "introduccion": "FríoSur necesita dar acceso remoto seguro a distintos perfiles. Para cada perfil, define el tipo de conexión, cómo se autentica, a qué recursos puede llegar y qué restricciones adicionales debe tener.",
+    "tiposAcceso": [
+      { "id": "acceso_directo", "nombre": "Acceso directo a la red interna, sin VPN" },
+      { "id": "vpn_client_to_site", "nombre": "VPN de acceso remoto (cliente-a-sitio)" },
+      { "id": "vpn_site_to_site", "nombre": "VPN sitio-a-sitio (enlace permanente entre oficinas)" }
+    ],
+    "autenticacion": [
+      { "id": "usuario_password", "nombre": "Usuario y contraseña" },
+      { "id": "certificado_digital", "nombre": "Certificado digital" },
+      { "id": "mfa", "nombre": "Segundo factor (MFA)" },
+      { "id": "ninguna", "nombre": "Ninguna (conexión abierta)" }
+    ],
+    "recursos": [
+      { "id": "sistema_pedidos", "nombre": "Sistema de pedidos" },
+      { "id": "sistema_despacho", "nombre": "Sistema de despacho" },
+      { "id": "registros_temperatura", "nombre": "Registros de temperatura" },
+      { "id": "configuracion_red", "nombre": "Configuración de red" },
+      { "id": "gestion_usuarios", "nombre": "Gestión de usuarios" },
+      { "id": "reportes_operacion", "nombre": "Reportes de operación" }
+    ],
+    "restricciones": [
+      { "id": "horario_limitado", "nombre": "Limitar la conexión a un horario definido" },
+      { "id": "ip_registrada", "nombre": "Restringir el acceso a direcciones IP conocidas" },
+      { "id": "sesion_registrada", "nombre": "Registrar (loguear) toda la sesión remota" },
+      { "id": "acceso_ilimitado", "nombre": "Permitir la conexión en cualquier momento y desde cualquier lugar" }
+    ],
+    "perfiles": [
+      { "id": "proveedor_mantenimiento", "nombre": "Proveedor de mantenimiento externo", "descripcion": "Necesita acceso puntual al sistema de despacho para tareas de soporte." },
+      { "id": "teletrabajo_admin", "nombre": "Administrador en teletrabajo", "descripcion": "Necesita administrar la red y los sistemas desde su casa." },
+      { "id": "teletrabajo_operativo", "nombre": "Operador en teletrabajo", "descripcion": "Necesita trabajar con pedidos y despacho desde su casa, ocasionalmente." }
+    ],
+    "configuracionCorrecta": {
+      "proveedor_mantenimiento": {
+        "tipoAcceso": "vpn_client_to_site",
+        "autenticacion": ["usuario_password", "mfa"],
+        "recursos": ["sistema_despacho"],
+        "restricciones": ["horario_limitado", "ip_registrada", "sesion_registrada"]
+      },
+      "teletrabajo_admin": {
+        "tipoAcceso": "vpn_client_to_site",
+        "autenticacion": ["usuario_password", "certificado_digital", "mfa"],
+        "recursos": ["sistema_pedidos", "sistema_despacho", "registros_temperatura", "configuracion_red", "gestion_usuarios", "reportes_operacion"],
+        "restricciones": ["ip_registrada", "sesion_registrada"]
+      },
+      "teletrabajo_operativo": {
+        "tipoAcceso": "vpn_client_to_site",
+        "autenticacion": ["usuario_password", "mfa"],
+        "recursos": ["sistema_pedidos", "sistema_despacho", "registros_temperatura", "reportes_operacion"],
+        "restricciones": ["ip_registrada", "sesion_registrada"]
+      }
+    }
+  },
+
+  "modulo9": {
+    "titulo": "Módulo 9 · Servidor AAA en acción",
+    "introduccion": "Un servidor AAA procesa cada intento de acceso en tres pasos: Authentication (¿quién es?), Authorization (¿qué puede hacer?) y Accounting (¿qué quedó registrado?). Para cada escenario, decide los tres resultados.",
+    "opcionesAutenticacion": [
+      { "id": "exitosa", "nombre": "Autenticación exitosa" },
+      { "id": "fallida", "nombre": "Autenticación fallida" }
+    ],
+    "opcionesAutorizacion": [
+      { "id": "concedida", "nombre": "Autorización concedida" },
+      { "id": "denegada", "nombre": "Autorización denegada" },
+      { "id": "no_aplica", "nombre": "No aplica (no se autenticó)" }
+    ],
+    "camposRegistro": [
+      { "id": "usuario", "nombre": "Usuario" },
+      { "id": "marca_tiempo", "nombre": "Marca de tiempo" },
+      { "id": "recurso", "nombre": "Recurso solicitado" },
+      { "id": "resultado", "nombre": "Resultado (éxito/fallo)" },
+      { "id": "ip_origen", "nombre": "Dirección IP de origen" }
+    ],
+    "escenarios": [
+      {
+        "id": "e1",
+        "texto": "El operador jperez ingresa su usuario y contraseña correctos e intenta CONSULTAR el sistema de pedidos.",
+        "autenticacionCorrecta": "exitosa",
+        "autorizacionCorrecta": "concedida",
+        "explicacion": "La credencial es correcta (autenticación exitosa) y un operador sí puede consultar el sistema de pedidos (autorización concedida). El accounting debe registrar el evento completo, haya sido exitoso o no."
+      },
+      {
+        "id": "e2",
+        "texto": "El operador jperez ingresa su usuario y contraseña correctos e intenta ELIMINAR un registro en gestión de usuarios.",
+        "autenticacionCorrecta": "exitosa",
+        "autorizacionCorrecta": "denegada",
+        "explicacion": "La credencial es correcta, pero un operador no tiene permisos sobre gestión de usuarios: la autorización debe denegarse aunque la autenticación haya sido exitosa."
+      },
+      {
+        "id": "e3",
+        "texto": "Alguien intenta ingresar como 'admin' con una contraseña incorrecta, tres veces seguidas, desde una IP externa desconocida.",
+        "autenticacionCorrecta": "fallida",
+        "autorizacionCorrecta": "no_aplica",
+        "explicacion": "Si la autenticación falla, el proceso de AAA no llega a evaluar la autorización. Aun así, cada intento fallido debe quedar registrado: es evidencia clave de un posible ataque de fuerza bruta."
+      },
+      {
+        "id": "e4",
+        "texto": "El proveedor externo se autentica correctamente e intenta CONSULTAR el sistema de despacho.",
+        "autenticacionCorrecta": "exitosa",
+        "autorizacionCorrecta": "concedida",
+        "explicacion": "El proveedor externo tiene acceso acotado y autorizado al sistema de despacho, así que la autorización se concede."
+      },
+      {
+        "id": "e5",
+        "texto": "El proveedor externo se autentica correctamente e intenta INGRESAR a configuración de red.",
+        "autenticacionCorrecta": "exitosa",
+        "autorizacionCorrecta": "denegada",
+        "explicacion": "El proveedor externo no tiene ningún permiso sobre configuración de red: aunque se autenticó bien, la autorización debe denegarse."
+      },
+      {
+        "id": "e6",
+        "texto": "El administrador se autentica correctamente y MODIFICA la configuración de red.",
+        "autenticacionCorrecta": "exitosa",
+        "autorizacionCorrecta": "concedida",
+        "explicacion": "El administrador es el único rol con permisos de administración sobre la configuración de red, por lo que la autorización se concede."
+      }
+    ]
+  },
+
+  "modulo10": {
+    "titulo": "Módulo 10 · Análisis de riesgo de red",
+    "introduccion": "Para cada activo y amenaza, ya se indica la vulnerabilidad que los conecta. Evalúa el impacto y selecciona los controles que corresponden (puede haber más de uno correcto y opciones que no aplican).",
+    "controles": [
+      { "id": "mfa_sensible", "nombre": "Exigir autenticación multifactor para cuentas administrativas o con acceso remoto" },
+      { "id": "bloqueo_cuenta", "nombre": "Bloquear la cuenta tras varios intentos fallidos" },
+      { "id": "restriccion_acceso_remoto", "nombre": "Restringir el acceso administrativo remoto por IP/horario" },
+      { "id": "segmentacion_iot", "nombre": "Aislar los dispositivos IoT en una red separada" },
+      { "id": "firewall_perimetral", "nombre": "Aplicar reglas de firewall que limiten el tráfico entrante" },
+      { "id": "actualizacion_firmware", "nombre": "Mantener actualizado el firmware de los dispositivos" },
+      { "id": "registro_auditoria", "nombre": "Registrar y auditar los accesos a sistemas críticos" },
+      { "id": "privilegio_minimo", "nombre": "Aplicar mínimo privilegio y separación de funciones" },
+      { "id": "cifrado_datos", "nombre": "Cifrar las comunicaciones y los datos sensibles" },
+      { "id": "capacitacion_usuarios", "nombre": "Capacitar al personal en buenas prácticas de seguridad" },
+      { "id": "ninguno", "nombre": "No se requiere ningún control adicional" }
+    ],
+    "filas": [
+      {
+        "id": "r1",
+        "activo": "Cuenta del administrador de red",
+        "amenaza": "Ataque de fuerza bruta desde Internet",
+        "vulnerabilidad": "Sin bloqueo de cuenta ni segundo factor de autenticación",
+        "impactoCorrecto": "alto",
+        "controlesCorrectos": ["mfa_sensible", "bloqueo_cuenta", "restriccion_acceso_remoto"]
+      },
+      {
+        "id": "r2",
+        "activo": "Cámaras de seguridad (IoT)",
+        "amenaza": "Dispositivo comprometido y usado como parte de una botnet",
+        "vulnerabilidad": "Cámaras conectadas sin restricciones de salida a Internet",
+        "impactoCorrecto": "medio",
+        "controlesCorrectos": ["segmentacion_iot", "firewall_perimetral", "actualizacion_firmware"]
+      },
+      {
+        "id": "r3",
+        "activo": "Registros de temperatura (evidencia de cadena de frío)",
+        "amenaza": "Modificación no autorizada del dato",
+        "vulnerabilidad": "Cualquier operador con acceso de escritura, sin auditoría de cambios",
+        "impactoCorrecto": "alto",
+        "controlesCorrectos": ["registro_auditoria", "privilegio_minimo"]
+      },
+      {
+        "id": "r4",
+        "activo": "Acceso remoto del proveedor externo",
+        "amenaza": "Credenciales del proveedor comprometidas",
+        "vulnerabilidad": "Sin autenticación multifactor y sin restricción de alcance",
+        "impactoCorrecto": "medio",
+        "controlesCorrectos": ["mfa_sensible", "restriccion_acceso_remoto", "registro_auditoria"]
+      },
+      {
+        "id": "r5",
+        "activo": "Personal administrativo",
+        "amenaza": "Correo de phishing que roba credenciales",
+        "vulnerabilidad": "Falta de capacitación y de segundo factor de autenticación",
+        "impactoCorrecto": "alto",
+        "controlesCorrectos": ["capacitacion_usuarios", "mfa_sensible"]
+      }
+    ]
+  },
+
   "puntajes": {
     "pesoModulo1": 100,
     "pesoModulo2": 100,
@@ -308,6 +522,10 @@
     "pesoModulo4": 100,
     "pesoModulo5": 100,
     "pesoModulo6": 100,
+    "pesoModulo7": 100,
+    "pesoModulo8": 100,
+    "pesoModulo9": 100,
+    "pesoModulo10": 100,
     "notaAprobacion": 60
   }
 }

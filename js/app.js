@@ -7,7 +7,10 @@
 
 const NSL = (function () {
   const STORAGE_KEY = "netsecure_lab_v1";
-  const MODULOS_ORDEN = ["modulo1", "modulo2", "modulo3", "modulo4", "modulo5", "modulo6"];
+  const MODULOS_ORDEN = [
+    "modulo1", "modulo2", "modulo3", "modulo4", "modulo5", "modulo6",
+    "modulo7", "modulo8", "modulo9", "modulo10"
+  ];
 
   let CASO = null;           // datos del caso (JSON cargado)
   let state = crearEstadoVacio();
@@ -91,9 +94,11 @@ const NSL = (function () {
     const puntajeTotal = calcularPuntajeTotal();
     const badge = document.getElementById("scoreBadge");
     const val = document.getElementById("scoreValue");
+    const max = document.getElementById("scoreMax");
     if (hechos > 0) {
       badge.hidden = false;
       val.textContent = puntajeTotal.obtenido;
+      if (max) max.textContent = puntajeTotal.maximo;
       badge.title = puntajeTotal.obtenido + " de " + puntajeTotal.maximo + " puntos posibles";
     } else {
       badge.hidden = true;
