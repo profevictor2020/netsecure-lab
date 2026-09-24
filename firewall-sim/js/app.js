@@ -104,6 +104,30 @@ const App = (function () {
     return r ? Motor.analizarRegla(r, contexto) : [];
   }
 
+  /* Crea una regla que resuelve exactamente el paquete recién probado, con
+     la acción sugerida por el motor, y la coloca PRIMERA en la lista para
+     garantizar que se aplique (first-match) sin importar qué otras reglas
+     existan debajo. El estudiante puede editarla o reordenarla después —
+     es un punto de partida, no una respuesta impuesta. */
+  function crearReglaSugerida(paquete, accion) {
+    const nombreOrigen = contexto.nombreDe(paquete.origen);
+    const nombreDestino = contexto.nombreDe(paquete.destino);
+    const regla = Motor.crearReglaVacia(`${nombreOrigen} → ${nombreDestino}`);
+    Object.assign(regla, {
+      origen: paquete.origen,
+      destino: paquete.destino,
+      protocolo: paquete.protocolo === "Cualquiera" ? "Cualquiera" : paquete.protocolo,
+      puerto: paquete.puerto,
+      ipOrigen: paquete.ipOrigen || "",
+      ipDestino: paquete.ipDestino || "",
+      accion,
+      comentario: "Regla creada automáticamente desde Prueba de tráfico — revisa si tiene sentido y ajústala si es necesario."
+    });
+    state.reglas.unshift(regla);
+    guardarEstado(false);
+    return regla;
+  }
+
   /* ---------------- Prueba de tráfico ---------------- */
 
   /* Si el paquete probado coincide exactamente con uno de los escenarios
@@ -212,6 +236,7 @@ const App = (function () {
     actualizarRegla,
     moverRegla,
     analizarReglaPorId,
+    crearReglaSugerida,
     probarTrafico,
     progresoResumen,
     limpiarRegistro,

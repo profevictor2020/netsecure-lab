@@ -94,10 +94,54 @@ const Motor = (function () {
     return avisos;
   }
 
-  /* ---------------- Retroalimentación de una prueba de tráfico ---------------- */
-  function generarFeedback(paquete, evaluacion, contexto) {
+  /* ---------------- Riesgo de permitir una comunicación ---------------- */
+  /* Evalúa qué tan riesgoso sería PERMITIR este paquete, independiente de
+     si una regla ya lo permitió o es solo hipotético. La reutilizan tanto
+     generarFeedback() (para explicar un resultado real) como
+     sugerirAccion() (para proponer qué acción debería tener una regla
+     nueva). No es una clave de respuestas: son señales de buenas
+     prácticas según la confianza de cada zona. */
+  function evaluarRiesgoSiPermitido(paquete, contexto, opts) {
     const zonaOrigen = contexto.zonaDe(paquete.origen);
     const zonaDestino = contexto.zonaDe(paquete.destino);
+    const sinRegistro = !!(opts && opts.sinRegistro);
+
+    if (zonaOrigen && zonaOrigen.confianza === 0 && zonaDestino && zonaDestino.confianza >= 4) {
+      return { verdict: "bad", riesgo: `Estás permitiendo que una zona no confiable (${zonaOrigen.nombre}) llegue directo a una zona crítica (${zonaDestino.nombre}). Esto amplía enormemente la superficie de ataque.` };
+    }
+    if (zonaOrigen && (zonaOrigen.id === "camaras" || zonaOrigen.id === "sensores") && paquete.destino === "internet") {
+      return { verdict: "bad", riesgo: `Un dispositivo IoT (${zonaOrigen.nombre}) con salida a Internet sin restricción es un riesgo típico: podría formar parte de una botnet si es comprometido.` };
+    }
+    if (zonaOrigen && zonaOrigen.id === "internet" && zonaDestino && (zonaDestino.id === "camaras" || zonaDestino.id === "sensores")) {
+      return { verdict: "bad", riesgo: `Exponer un dispositivo IoT (${zonaDestino.nombre}) directamente a Internet permite que cualquiera en la red pública intente acceder a él sin pasar por ningún control. Debería ser alcanzable solo desde dentro de la red.` };
+    }
+    if (paquete.origen === "proveedor_externo" && paquete.destino !== "servidor_despacho") {
+      return { verdict: "bad", riesgo: "Un proveedor externo debería acceder solo al recurso puntual que necesita (por ejemplo, el servidor de despacho), no a otros sistemas críticos." };
+    }
+    if (paquete.origen === "usuario_vpn" && paquete.destino === "base_datos") {
+      return { verdict: "bad", riesgo: "Incluso desde una VPN autenticada, el acceso directo a la base de datos debería evitarse: la aplicación (servidor web) debería ser el único intermediario." };
+    }
+    if (paquete.destino === "base_datos" && paquete.origen !== "servidor_web") {
+      return { verdict: "bad", riesgo: "El acceso directo a la base de datos, sin pasar por la aplicación, amplía el riesgo de modificación, extracción o destrucción de información." };
+    }
+    if (sinRegistro && zonaDestino && zonaDestino.confianza >= 4) {
+      return { verdict: "warn", riesgo: `Esta comunicación llega a una zona crítica (${zonaDestino.nombre}) y quedó permitida sin registrar. Para trazabilidad, conviene usar "permitir y registrar" en accesos a recursos sensibles.` };
+    }
+    return { verdict: "ok", riesgo: undefined };
+  }
+
+  /* Sugiere una acción razonable para una regla nueva que resuelva este
+     paquete: si permitirlo sería riesgoso, sugiere bloquear; si no,
+     sugiere permitir y registrar (con trazabilidad por defecto). */
+  function sugerirAccion(paquete, contexto) {
+    const r = evaluarRiesgoSiPermitido(paquete, contexto);
+    return r.verdict === "bad" ? "bloquear" : "permitir_registrar";
+  }
+
+  /* ---------------- Retroalimentación de una prueba de tráfico ---------------- */
+  function generarFeedback(paquete, evaluacion, contexto) {
+    const zonaDestino = contexto.zonaDe(paquete.destino);
+    const zonaOrigen = contexto.zonaDe(paquete.origen);
     const nombreOrigen = contexto.nombreDe(paquete.origen);
     const nombreDestino = contexto.nombreDe(paquete.destino);
     const { resultado, reglaAplicada, indice } = evaluacion;
@@ -109,25 +153,9 @@ const Motor = (function () {
       motivo = `La regla #${indice + 1} ("${reglaAplicada.nombre || "sin nombre"}") permitió esta comunicación.`;
       notaRetorno = "Al permitir esta conexión, el firewall también permite automáticamente el tráfico de retorno correspondiente (una conexión con estado no necesita una regla aparte para la respuesta).";
 
-      if (zonaOrigen && zonaOrigen.confianza === 0 && zonaDestino && zonaDestino.confianza >= 4) {
-        riesgo = `Estás permitiendo que una zona no confiable (${zonaOrigen.nombre}) llegue directo a una zona crítica (${zonaDestino.nombre}). Esto amplía enormemente la superficie de ataque.`;
-        verdict = "bad";
-      } else if (zonaOrigen && (zonaOrigen.id === "camaras" || zonaOrigen.id === "sensores") && paquete.destino === "internet") {
-        riesgo = `Un dispositivo IoT (${zonaOrigen.nombre}) con salida a Internet sin restricción es un riesgo típico: podría formar parte de una botnet si es comprometido.`;
-        verdict = "bad";
-      } else if (paquete.origen === "proveedor_externo" && paquete.destino !== "servidor_despacho") {
-        riesgo = "Un proveedor externo debería acceder solo al recurso puntual que necesita (por ejemplo, el servidor de despacho), no a otros sistemas críticos.";
-        verdict = "bad";
-      } else if (paquete.origen === "usuario_vpn" && paquete.destino === "base_datos") {
-        riesgo = "Incluso desde una VPN autenticada, el acceso directo a la base de datos debería evitarse: la aplicación (servidor web) debería ser el único intermediario.";
-        verdict = "bad";
-      } else if (paquete.destino === "base_datos" && paquete.origen !== "servidor_web") {
-        riesgo = "El acceso directo a la base de datos, sin pasar por la aplicación, amplía el riesgo de modificación, extracción o destrucción de información.";
-        verdict = "bad";
-      } else if (zonaDestino && zonaDestino.confianza >= 4 && reglaAplicada.accion === "permitir") {
-        riesgo = `Esta comunicación llega a una zona crítica (${zonaDestino.nombre}) y quedó permitida sin registrar. Para trazabilidad, conviene usar "permitir y registrar" en accesos a recursos sensibles.`;
-        verdict = "warn";
-      }
+      const evalRiesgo = evaluarRiesgoSiPermitido(paquete, contexto, { sinRegistro: reglaAplicada.accion === "permitir" });
+      verdict = evalRiesgo.verdict;
+      riesgo = evalRiesgo.riesgo;
 
       if (verdict === "bad") {
         mejora = `Revisa la regla #${indice + 1} ("${reglaAplicada.nombre || "sin nombre"}"): probablemente sea demasiado amplia, o debería bloquear en vez de permitir esta combinación.`;
@@ -160,7 +188,11 @@ const Motor = (function () {
       motivo,
       riesgo,
       mejora,
-      notaRetorno
+      notaRetorno,
+      // Cuando verdict !== 'ok', una regla nueva con esta acción (insertada
+      // primero) resolvería este paquete exactamente. La UI la ofrece como
+      // botón de creación automática — el estudiante puede editarla después.
+      accionSugerida: verdict === "ok" ? null : sugerirAccion(paquete, contexto)
     };
   }
 
@@ -181,5 +213,8 @@ const Motor = (function () {
     };
   }
 
-  return { reglaCoincide, evaluarTrafico, analizarRegla, generarFeedback, crearReglaVacia, esComodin };
+  return {
+    reglaCoincide, evaluarTrafico, analizarRegla, generarFeedback, crearReglaVacia, esComodin,
+    evaluarRiesgoSiPermitido, sugerirAccion
+  };
 })();

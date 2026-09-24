@@ -340,7 +340,15 @@ const UI = (function () {
     if (fb.mejora) html += `<dt>Cómo mejorar</dt><dd>${esc(fb.mejora)}</dd>`;
     if (fb.notaRetorno) html += `<dt>Sobre el tráfico de retorno</dt><dd class="dd-info">${esc(fb.notaRetorno)}</dd>`;
     html += `<dt>¿Se generó registro?</dt><dd>${fb.registrado ? "Sí" : "No"}</dd>`;
-    html += `</dl></div>`;
+    html += `</dl>`;
+    if (fb.accionSugerida) {
+      const etiqueta = fb.accionSugerida === "bloquear"
+        ? "🚫 Crear regla para bloquear esta comunicación"
+        : "✅ Crear regla para permitir y registrar esta comunicación";
+      html += `<button type="button" class="btn btn-primary" id="btnCrearReglaSugerida" style="margin-top:14px">${etiqueta}</button>`;
+      html += `<p class="crear-regla-hint">Se creará al principio de tus reglas, para que tenga prioridad. Puedes editarla después en "Reglas de firewall".</p>`;
+    }
+    html += `</div>`;
     return html;
   }
 
@@ -500,6 +508,15 @@ const UI = (function () {
       wireChecklist();
       actualizarProgresoBadge();
       document.getElementById("resultadoPrueba").scrollIntoView({ behavior: "smooth" });
+
+      const btnCrear = document.getElementById("btnCrearReglaSugerida");
+      if (btnCrear) {
+        btnCrear.addEventListener("click", () => {
+          App.crearReglaSugerida(paquete, fb.accionSugerida);
+          mostrarMensaje('Regla creada. Puedes editarla en "Reglas de firewall".');
+          ejecutarPrueba(); // vuelve a probar la misma comunicación de inmediato, con la regla ya aplicada
+        });
+      }
     }
 
     function wireChecklist() {
