@@ -100,8 +100,24 @@ const App = (function () {
   }
 
   function analizarReglaPorId(id) {
-    const r = state.reglas.find((x) => x.id === id);
-    return r ? Motor.analizarRegla(r, contexto) : [];
+    const i = state.reglas.findIndex((x) => x.id === id);
+    if (i < 0) return [];
+    const r = state.reglas[i];
+    const avisos = Motor.analizarRegla(r, contexto);
+
+    // Si una regla anterior (más arriba, con más prioridad) tiene EXACTAMENTE
+    // el mismo origen/destino/protocolo/puerto, esta regla nunca se va a
+    // evaluar — first-match-wins hace que la de arriba gane siempre. Sin este
+    // aviso, dos reglas iguales con distinta acción daban la sensación de que
+    // "la misma regla" cambiaba de resultado sola.
+    const duplicaIndex = state.reglas.findIndex((otra, j) =>
+      j < i && otra.origen === r.origen && otra.destino === r.destino &&
+      otra.protocolo === r.protocolo && String(otra.puerto) === String(r.puerto) && otra.habilitada
+    );
+    if (duplicaIndex >= 0) {
+      avisos.unshift({ tipo: "insegura", texto: `Regla sin efecto: la regla #${duplicaIndex + 1} de arriba coincide con exactamente lo mismo y se aplica primero — esta nunca se evaluará mientras esa siga ahí.` });
+    }
+    return avisos;
   }
 
   /* Crea una regla que resuelve exactamente el paquete recién probado, con
@@ -112,11 +128,31 @@ const App = (function () {
   function crearReglaSugerida(paquete, accion) {
     const nombreOrigen = contexto.nombreDe(paquete.origen);
     const nombreDestino = contexto.nombreDe(paquete.destino);
+    const protocolo = paquete.protocolo === "Cualquiera" ? "Cualquiera" : paquete.protocolo;
+
+    // Si ya existe una regla para exactamente el mismo origen/destino/
+    // protocolo/puerto, no creamos una segunda regla "duplicada" (eso
+    // dejaría la vieja enterrada más abajo en la lista, sin efecto real,
+    // y podía dar la impresión de que "la misma regla" cambia de
+    // resultado sola). En vez de eso, actualizamos esa regla y la subimos
+    // al principio para garantizar que sea la que se aplique.
+    const existente = state.reglas.find((r) =>
+      r.origen === paquete.origen && r.destino === paquete.destino &&
+      r.protocolo === protocolo && String(r.puerto) === String(paquete.puerto)
+    );
+    if (existente) {
+      existente.accion = accion;
+      existente.habilitada = true;
+      state.reglas = [existente, ...state.reglas.filter((r) => r !== existente)];
+      guardarEstado(false);
+      return existente;
+    }
+
     const regla = Motor.crearReglaVacia(`${nombreOrigen} → ${nombreDestino}`);
     Object.assign(regla, {
       origen: paquete.origen,
       destino: paquete.destino,
-      protocolo: paquete.protocolo === "Cualquiera" ? "Cualquiera" : paquete.protocolo,
+      protocolo,
       puerto: paquete.puerto,
       ipOrigen: paquete.ipOrigen || "",
       ipDestino: paquete.ipDestino || "",
