@@ -77,6 +77,16 @@ p { margin: 0 0 12px; }
 
 .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
+.score-badge {
+  font-size: 13px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--bg-panel);
+}
+.score-badge strong { color: var(--accent); }
+
 .btn {
   font-family: var(--font);
   font-size: 13.5px;
@@ -176,6 +186,33 @@ p { margin: 0 0 12px; }
 .how-it-works { margin: 10px 0 0; padding-left: 22px; color: var(--text); font-size: 13.5px; }
 .how-it-works li { margin-bottom: 8px; }
 
+/* Objetivo (Introducción) */
+.objetivo-box {
+  margin-top: 18px;
+  border: 1px solid var(--accent-soft);
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+.objetivo-box h3 { color: var(--accent); font-size: 15.5px; }
+.objetivo-box p { color: var(--text); font-size: 13.5px; }
+
+/* Checklist de escenarios sugeridos (Prueba de tráfico) */
+.checklist { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.escenario-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 7px;
+  padding: 10px 14px;
+  background: var(--bg-panel-alt);
+  flex-wrap: wrap;
+}
+.escenario-texto { flex: 1; min-width: 200px; font-size: 13.5px; color: var(--text); }
+.escenario-servicio { color: var(--text-muted); font-weight: 400; font-size: 12.5px; }
+.escenario-contexto { color: var(--text-faint); font-size: 12px; margin-top: 2px; }
+
 /* Case brief (zonas) */
 .case-brief {
   display: grid;
@@ -241,6 +278,7 @@ table.data-table td.center { text-align: center; }
 .badge-resultado.ok { background: var(--ok-soft); color: var(--ok); }
 .badge-resultado.warn { background: var(--warn-soft); color: var(--warn); }
 .badge-resultado.bad { background: var(--danger-soft); color: var(--danger); }
+.badge-resultado.pendiente { background: var(--border-soft); color: var(--text-faint); }
 
 /* ---------- Forms ---------- */
 label.field-label { font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-top: 14px; margin-bottom: 4px; }

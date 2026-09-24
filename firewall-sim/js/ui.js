@@ -57,6 +57,21 @@ const UI = (function () {
   function renderTodo() {
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.vista === vistaActual));
     renderVista();
+    actualizarProgresoBadge();
+  }
+
+  /* El badge del encabezado muestra cuántos de los 10 escenarios sugeridos
+     quedaron resueltos sin riesgo. No es una nota: es un check-list de
+     tareas, para que el estudiante sepa qué le falta por resolver. */
+  function actualizarProgresoBadge() {
+    const { resueltos, total } = App.progresoResumen();
+    const badge = document.getElementById("progresoBadge");
+    const val = document.getElementById("progresoValue");
+    const max = document.getElementById("progresoMax");
+    if (!badge) return;
+    val.textContent = resueltos;
+    max.textContent = total;
+    badge.hidden = resueltos === 0;
   }
 
   function renderVista() {
@@ -85,30 +100,47 @@ const UI = (function () {
         <p>${esc(z.descripcion)}</p>
       </div>`).join("");
 
+    const { resueltos, total } = App.progresoResumen();
+
     app.appendChild(el(`
       <section class="panel">
         <span class="tag">Simulador de firewall</span>
         <h2>${esc(ESCENARIO.caso.nombre)}</h2>
         <p class="intro-text">${esc(ESCENARIO.caso.descripcion)}</p>
 
-        <h3 style="margin-top:22px">Cómo funciona este simulador</h3>
+        <div class="objetivo-box">
+          <h3 style="margin-top:0">🎯 Tu objetivo</h3>
+          <p style="margin-bottom:0">
+            FríoSur necesita resolver <strong>10 comunicaciones reales</strong> entre sus sistemas
+            (por ejemplo: "¿los usuarios deben poder entrar al sistema de pedidos?", "¿una cámara
+            debería poder salir libremente a Internet?"). Tu tarea es <strong>crear las reglas de
+            firewall</strong> necesarias para que cada una quede resuelta correctamente — permitida
+            cuando corresponde, bloqueada cuando no. La lista completa está en
+            <strong>Prueba de tráfico</strong>, con tu progreso: <strong>${resueltos} de ${total}</strong> resueltas sin riesgo hasta ahora.
+          </p>
+        </div>
+
+        <h3 style="margin-top:22px">Cómo hacerlo, paso a paso</h3>
         <ol class="how-it-works">
-          <li>En <strong>Reglas de firewall</strong> creas tus propias reglas: origen, destino, protocolo, puerto, acción (permitir / bloquear / permitir y registrar) y justificación.</li>
-          <li>Las reglas se evalúan <strong>de arriba hacia abajo</strong> y se aplica la <strong>primera que coincide</strong>. Puedes reordenarlas con las flechas.</li>
-          <li>Si ninguna regla coincide, el firewall aplica la política por defecto: <strong>denegar</strong>.</li>
-          <li>En <strong>Prueba de tráfico</strong> simulas una comunicación concreta y ves si tu configuración la permite o la bloquea — con explicación de por qué, y qué riesgo implica.</li>
-          <li>No hay nota ni puntaje: es un espacio de práctica libre. Puedes probar, corregir y volver a probar todas las veces que quieras.</li>
+          <li>Ve a <strong>Prueba de tráfico</strong> y elige uno de los 10 escenarios de la lista.</li>
+          <li>Presiona <strong>Probar</strong> y observa el resultado: si el firewall aún no tiene reglas, todo queda <strong>bloqueado por defecto</strong> — es normal, es el punto de partida.</li>
+          <li>Lee la retroalimentación: te dice si el resultado tiene algún riesgo y qué deberías ajustar.</li>
+          <li>Si necesitas cambiar el resultado, ve a <strong>Reglas de firewall</strong> y crea (o edita) una regla: origen, destino, servicio y si se permite, se bloquea, o se permite y registra.</li>
+          <li>Vuelve a <strong>Prueba de tráfico</strong> y prueba de nuevo el mismo escenario para confirmar que ahora queda bien resuelto. Repite hasta cubrir los 10.</li>
         </ol>
+        <p class="intro-text" style="margin-top:-4px">No hay nota ni puntaje — puedes probar, corregir y volver a probar todas las veces que quieras. El contador de arriba es solo para que sepas cuánto te falta.</p>
 
         <h3 style="margin-top:22px">Zonas de red de este caso</h3>
         <div class="case-brief">${zonasHTML}</div>
 
         <div class="module-actions">
-          <button class="btn btn-primary" id="btnComenzar">Ir a Reglas de firewall →</button>
+          <button class="btn btn-primary" id="btnComenzar">Empezar: ir a Prueba de tráfico →</button>
+          <button class="btn btn-secondary" id="btnIrReglas">Ir a Reglas de firewall</button>
         </div>
       </section>
     `));
-    document.getElementById("btnComenzar").addEventListener("click", () => irAVista("reglas"));
+    document.getElementById("btnComenzar").addEventListener("click", () => irAVista("prueba"));
+    document.getElementById("btnIrReglas").addEventListener("click", () => irAVista("reglas"));
   }
 
   /* ============================================================
@@ -204,7 +236,16 @@ const UI = (function () {
     const reglas = App.state.reglas;
     const listaHTML = reglas.length
       ? reglas.map((r, i) => reglaCardHTML(r, i, reglas.length)).join("")
-      : `<div class="panel-empty">Todavía no tienes reglas. Agrega la primera con el botón de abajo — mientras no exista ninguna, el firewall bloqueará todo (denegado por defecto).</div>`;
+      : `<div class="panel-empty">
+          <strong>Todavía no tienes ninguna regla — por eso el firewall bloquea todo (denegado por defecto).</strong>
+          <ol class="how-it-works" style="text-align:left;max-width:440px;margin:14px auto 0">
+            <li>Presiona <strong>"+ Agregar regla"</strong> abajo.</li>
+            <li>Elige el origen y el destino (por ejemplo, Usuarios → Servidor web).</li>
+            <li>Elige el servicio (o usa un chip rápido como HTTPS).</li>
+            <li>Elige la acción: permitir, bloquear, o permitir y registrar.</li>
+            <li>Ve a <strong>Prueba de tráfico</strong> y comprueba el resultado.</li>
+          </ol>
+        </div>`;
 
     app.appendChild(el(`
       <section class="panel">
@@ -322,20 +363,43 @@ const UI = (function () {
       </div>`;
   }
 
-  function renderPrueba(app) {
-    const sugerenciasHTML = ESCENARIO.solicitudesSugeridas.map((s) => `
-      <button type="button" class="chip chip-sugerencia" data-sugerencia="${s.id}" title="${esc(s.contexto)}">
-        ${esc(nodosPorId[s.origen] ? nodosPorId[s.origen].nombre : s.origen)} → ${esc(nodosPorId[s.destino] ? nodosPorId[s.destino].nombre : s.destino)}
-      </button>`).join("");
+  function estadoEscenario(idEscenario) {
+    const v = App.state.progreso[idEscenario];
+    if (v === "ok") return { clase: "ok", texto: "Resuelto" };
+    if (v === "warn") return { clase: "warn", texto: "Con advertencia" };
+    if (v === "bad") return { clase: "bad", texto: "Riesgoso" };
+    return { clase: "pendiente", texto: "Sin probar" };
+  }
 
+  function checklistHTML() {
+    const filas = ESCENARIO.solicitudesSugeridas.map((s) => {
+      const estado = estadoEscenario(s.id);
+      const nombreOrigen = nodosPorId[s.origen] ? nodosPorId[s.origen].nombre : s.origen;
+      const nombreDestino = nodosPorId[s.destino] ? nodosPorId[s.destino].nombre : s.destino;
+      return `
+        <div class="escenario-item">
+          <span class="badge-resultado ${estado.clase}">${estado.texto}</span>
+          <div class="escenario-texto">
+            <strong>${esc(nombreOrigen)} → ${esc(nombreDestino)}</strong> <span class="escenario-servicio">(${esc(s.servicio)})</span>
+            <div class="escenario-contexto">${esc(s.contexto)}</div>
+          </div>
+          <button type="button" class="btn btn-secondary" data-probar-sugerencia="${s.id}">Probar</button>
+        </div>`;
+    }).join("");
+    return `<div class="checklist">${filas}</div>`;
+  }
+
+  function renderPrueba(app) {
     app.appendChild(el(`
       <section class="panel">
         <span class="tag">Simulación</span>
         <h2>Prueba de tráfico</h2>
-        <p class="intro-text">Arma una comunicación concreta y prueba cómo la resuelve tu configuración actual del firewall.</p>
+        <p class="intro-text">Prueba cada uno de los 10 escenarios que FríoSur necesita resolver. Presiona "Probar" para autocompletar y ejecutar la prueba de inmediato.</p>
 
-        <label class="field-label">Escenarios sugeridos (clic para autocompletar)</label>
-        <div class="servicios-rapidos" style="margin-bottom:6px">${sugerenciasHTML}</div>
+        <div id="checklistEscenarios">${checklistHTML()}</div>
+
+        <h3 style="margin-top:24px">O arma tu propia prueba</h3>
+        <p class="intro-text">Útil para explorar casos que no están en la lista de arriba.</p>
 
         <div class="regla-grid" style="margin-top:14px">
           <div class="campo">
@@ -397,19 +461,7 @@ const UI = (function () {
     servicioSel.addEventListener("change", sincronizarServicio);
     sincronizarServicio();
 
-    document.querySelectorAll("[data-sugerencia]").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        const s = ESCENARIO.solicitudesSugeridas.find((x) => x.id === chip.dataset.sugerencia);
-        if (!s) return;
-        document.getElementById("pOrigen").value = s.origen;
-        document.getElementById("pDestino").value = s.destino;
-        servicioSel.value = s.servicio;
-        sincronizarServicio();
-        mostrarMensaje(s.contexto);
-      });
-    });
-
-    document.getElementById("btnProbar").addEventListener("click", () => {
+    function ejecutarPrueba() {
       const paquete = {
         origen: document.getElementById("pOrigen").value,
         destino: document.getElementById("pDestino").value,
@@ -423,8 +475,28 @@ const UI = (function () {
       const fb = App.probarTrafico(paquete);
       document.getElementById("resultadoPrueba").innerHTML = feedbackHTML(fb);
       document.getElementById("registroPruebas").innerHTML = registroTablaHTML();
+      document.getElementById("checklistEscenarios").innerHTML = checklistHTML();
+      wireChecklist();
+      actualizarProgresoBadge();
       document.getElementById("resultadoPrueba").scrollIntoView({ behavior: "smooth" });
-    });
+    }
+
+    function wireChecklist() {
+      document.querySelectorAll("[data-probar-sugerencia]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const s = ESCENARIO.solicitudesSugeridas.find((x) => x.id === btn.dataset.probarSugerencia);
+          if (!s) return;
+          document.getElementById("pOrigen").value = s.origen;
+          document.getElementById("pDestino").value = s.destino;
+          servicioSel.value = s.servicio;
+          sincronizarServicio();
+          ejecutarPrueba();
+        });
+      });
+    }
+    wireChecklist();
+
+    document.getElementById("btnProbar").addEventListener("click", ejecutarPrueba);
 
     document.getElementById("btnDescargarRegistro").addEventListener("click", () => App.descargarRegistro());
     document.getElementById("btnLimpiarRegistro").addEventListener("click", () => {

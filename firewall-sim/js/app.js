@@ -14,7 +14,8 @@ const App = (function () {
 
   let state = {
     reglas: [],
-    registro: []
+    registro: [],
+    progreso: {} // { [idEscenarioSugerido]: "ok" | "warn" | "bad" } — último resultado de cada escenario probado, no es una nota
   };
 
   /* ---------------- Carga de datos ---------------- */
@@ -57,7 +58,7 @@ const App = (function () {
       if (!raw) return false;
       const guardado = JSON.parse(raw);
       if (guardado && Array.isArray(guardado.reglas)) {
-        state = Object.assign({ reglas: [], registro: [] }, guardado);
+        state = Object.assign({ reglas: [], registro: [], progreso: {} }, guardado);
         return true;
       }
     } catch (e) { /* ignorar estado corrupto */ }
@@ -65,7 +66,7 @@ const App = (function () {
   }
 
   function reiniciarSimulador() {
-    state = { reglas: [], registro: [] };
+    state = { reglas: [], registro: [], progreso: {} };
     guardarEstado(false);
     UI.renderTodo();
     UI.mostrarMensaje("Simulador reiniciado.");
@@ -104,6 +105,18 @@ const App = (function () {
   }
 
   /* ---------------- Prueba de tráfico ---------------- */
+
+  /* Si el paquete probado coincide exactamente con uno de los escenarios
+     sugeridos, devuelve su id (para llevar el checklist de progreso). */
+  function identificarEscenario(paquete) {
+    const s = (ESCENARIO.solicitudesSugeridas || []).find((e) =>
+      e.origen === paquete.origen &&
+      e.destino === paquete.destino &&
+      e.servicio === paquete.servicio
+    );
+    return s ? s.id : null;
+  }
+
   function probarTrafico(paquete) {
     const evaluacion = Motor.evaluarTrafico(state.reglas, paquete);
     const feedback = Motor.generarFeedback(paquete, evaluacion, contexto);
@@ -121,8 +134,24 @@ const App = (function () {
       registrado: feedback.registrado
     });
     if (state.registro.length > 50) state.registro.length = 50;
+
+    const idEscenario = identificarEscenario(paquete);
+    if (idEscenario) {
+      state.progreso[idEscenario] = feedback.verdict;
+      feedback.idEscenario = idEscenario;
+    }
+
     guardarEstado(false);
     return feedback;
+  }
+
+  /* Resumen del checklist de escenarios sugeridos: cuenta "resuelto" solo
+     cuando quedó sin ningún riesgo (verdict "ok"). No es un puntaje, es un
+     conteo de tareas — warn/bad quedan visibles pero no cuentan como listas. */
+  function progresoResumen() {
+    const total = (ESCENARIO.solicitudesSugeridas || []).length;
+    const resueltos = Object.values(state.progreso).filter((v) => v === "ok").length;
+    return { resueltos, total };
   }
 
   function limpiarRegistro() {
@@ -184,6 +213,7 @@ const App = (function () {
     moverRegla,
     analizarReglaPorId,
     probarTrafico,
+    progresoResumen,
     limpiarRegistro,
     descargarReglas,
     descargarRegistro
