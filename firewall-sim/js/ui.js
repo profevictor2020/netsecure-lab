@@ -111,24 +111,22 @@ const UI = (function () {
         <div class="objetivo-box">
           <h3 style="margin-top:0">🎯 Tu objetivo</h3>
           <p style="margin-bottom:0">
-            FríoSur necesita resolver <strong>10 comunicaciones reales</strong> entre sus sistemas
-            (por ejemplo: "¿los usuarios deben poder entrar al sistema de pedidos?", "¿una cámara
-            debería poder salir libremente a Internet?"). Tu tarea es <strong>crear las reglas de
-            firewall</strong> necesarias para que cada una quede resuelta correctamente — permitida
-            cuando corresponde, bloqueada cuando no. La lista completa está en
-            <strong>Prueba de tráfico</strong>, con tu progreso: <strong>${resueltos} de ${total}</strong> resueltas sin riesgo hasta ahora.
+            FríoSur necesita resolver <strong>10 comunicaciones reales</strong> entre sus sistemas.
+            Tu tarea: crear las reglas de firewall para que cada una quede bien resuelta — permitida
+            cuando corresponde, bloqueada cuando no. Progreso actual: <strong>${resueltos} de ${total}</strong>.
+            No hay nota ni puntaje.
           </p>
         </div>
 
-        <h3 style="margin-top:22px">Cómo hacerlo, paso a paso</h3>
-        <ol class="how-it-works">
-          <li>Ve a <strong>Prueba de tráfico</strong> y elige uno de los 10 escenarios de la lista.</li>
-          <li>Presiona <strong>Probar</strong> y observa el resultado: si el firewall aún no tiene reglas, todo queda <strong>bloqueado por defecto</strong> — es normal, es el punto de partida.</li>
-          <li>Lee la retroalimentación: te dice si el resultado tiene algún riesgo y qué deberías ajustar.</li>
-          <li>Si necesitas cambiar el resultado, ve a <strong>Reglas de firewall</strong> y crea (o edita) una regla: origen, destino, servicio y si se permite, se bloquea, o se permite y registra.</li>
-          <li>Vuelve a <strong>Prueba de tráfico</strong> y prueba de nuevo el mismo escenario para confirmar que ahora queda bien resuelto. Repite hasta cubrir los 10.</li>
-        </ol>
-        <p class="intro-text" style="margin-top:-4px">No hay nota ni puntaje — puedes probar, corregir y volver a probar todas las veces que quieras. El contador de arriba es solo para que sepas cuánto te falta.</p>
+        <h3 style="margin-top:22px">🎓 Antes de empezar: practica el patrón (30 segundos)</h3>
+        <p class="intro-text" style="margin-top:-4px">Este es un ejemplo de práctica — no es uno de tus 10 escenarios reales. Haz clic en cada paso, en orden.</p>
+        <div class="tutorial-box">
+          <p class="tutorial-escenario">Ejemplo: <strong>Usuarios → Sistema de pedidos</strong> (HTTPS)</p>
+          <div id="tutorialResultado"></div>
+          <div class="module-actions" id="tutorialAcciones" style="margin-top:4px">
+            <button class="btn btn-primary" id="tutorialProbar">1. Probar esta comunicación</button>
+          </div>
+        </div>
 
         <h3 style="margin-top:22px">Zonas de red de este caso</h3>
         <div class="case-brief">${zonasHTML}</div>
@@ -141,6 +139,60 @@ const UI = (function () {
     `));
     document.getElementById("btnComenzar").addEventListener("click", () => irAVista("prueba"));
     document.getElementById("btnIrReglas").addEventListener("click", () => irAVista("reglas"));
+    wireTutorial();
+  }
+
+  /* ------------------------------------------------------------
+     Tutorial interactivo (dentro de Introducción): un ejemplo de
+     práctica aislado (no toca App.state) que usa el motor real para
+     que el estudiante APRENDA HACIENDO el ciclo completo —
+     probar → ver bloqueado → crear la regla → probar de nuevo → ver
+     permitido — antes de enfrentar los 10 escenarios reales.
+     ------------------------------------------------------------ */
+  function wireTutorial() {
+    const paquete = { origen: "usuarios", destino: "sistema_pedidos", servicio: "HTTPS", puerto: "443", protocolo: "TCP", ipOrigen: "", ipDestino: "" };
+    let reglas = [];
+
+    function miniResultado(fb) {
+      const clase = fb.verdict === "ok" ? "resultado-ok" : fb.verdict === "warn" ? "resultado-warn" : "resultado-bad";
+      const label = fb.resultado === "permitido" ? "PERMITIDO" : "BLOQUEADO";
+      return `<div class="feedback-box" style="margin-top:10px">
+        <div class="resultado-badge ${clase}">${label}</div>
+        <p style="margin:8px 0 0;font-size:13px;color:var(--text)">${esc(fb.motivo)}</p>
+      </div>`;
+    }
+
+    function paso1() {
+      const evaluacion = Motor.evaluarTrafico(reglas, paquete);
+      const fb = Motor.generarFeedback(paquete, evaluacion, App.contexto);
+      document.getElementById("tutorialResultado").innerHTML = miniResultado(fb);
+      document.getElementById("tutorialAcciones").innerHTML =
+        '<button class="btn btn-primary" id="tutorialCrear">2. Crear la regla que lo resuelve</button>';
+      document.getElementById("tutorialCrear").addEventListener("click", paso2);
+    }
+
+    function paso2() {
+      const regla = Motor.crearReglaVacia("Usuarios → Sistema de pedidos");
+      Object.assign(regla, { origen: "usuarios", destino: "sistema_pedidos", protocolo: "TCP", puerto: "443", accion: "permitir_registrar" });
+      reglas.unshift(regla);
+      document.getElementById("tutorialResultado").innerHTML +=
+        '<div class="tutorial-regla-creada">✅ Regla creada: <strong>Usuarios → Sistema de pedidos</strong> · Permitir y registrar</div>';
+      document.getElementById("tutorialAcciones").innerHTML =
+        '<button class="btn btn-primary" id="tutorialProbar2">3. Probar de nuevo</button>';
+      document.getElementById("tutorialProbar2").addEventListener("click", paso3);
+    }
+
+    function paso3() {
+      const evaluacion = Motor.evaluarTrafico(reglas, paquete);
+      const fb = Motor.generarFeedback(paquete, evaluacion, App.contexto);
+      document.getElementById("tutorialResultado").innerHTML = miniResultado(fb) +
+        '<p class="tutorial-cierre">✅ Así funciona el patrón: <strong>probar → si sale mal, crear la regla → probar de nuevo</strong>. Repite esto con los 10 escenarios reales.</p>';
+      document.getElementById("tutorialAcciones").innerHTML =
+        '<button class="btn btn-primary" id="tutorialFinal">Entendido, empezar de verdad →</button>';
+      document.getElementById("tutorialFinal").addEventListener("click", () => irAVista("prueba"));
+    }
+
+    document.getElementById("tutorialProbar").addEventListener("click", paso1);
   }
 
   /* ============================================================
