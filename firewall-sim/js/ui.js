@@ -323,12 +323,15 @@ const UI = (function () {
     return opts;
   }
 
-  function feedbackHTML(fb) {
+  function feedbackHTML(fb, paquete) {
     const resultadoLabel = fb.resultado === "permitido" ? "PERMITIDO" : "BLOQUEADO";
     // El color del badge sigue el veredicto (riesgo real), no solo el resultado:
     // un "permitido" riesgoso se ve en rojo, no en verde.
     const claseVerdict = fb.verdict === "ok" ? "resultado-ok" : fb.verdict === "warn" ? "resultado-warn" : "resultado-bad";
+    const nombreOrigen = nodosPorId[paquete.origen] ? nodosPorId[paquete.origen].nombre : paquete.origen;
+    const nombreDestino = nodosPorId[paquete.destino] ? nodosPorId[paquete.destino].nombre : paquete.destino;
     let html = `<div class="feedback-box">`;
+    html += `<div class="comunicacion-probada">Comunicación probada: <strong>${esc(nombreOrigen)} → ${esc(nombreDestino)}</strong> (${esc(paquete.servicio)}${paquete.puerto && paquete.puerto !== "cualquiera" ? ", puerto " + esc(paquete.puerto) : ""})</div>`;
     html += `<div class="resultado-badge ${claseVerdict}">${resultadoLabel}</div>`;
     html += `<dl class="feedback-dl">`;
     html += `<dt>Regla aplicada</dt><dd>${fb.reglaAplicada ? "#" + (fb.indice + 1) + " — " + esc(fb.reglaAplicada.nombre) : "Ninguna (denegado por defecto)"}</dd>`;
@@ -454,12 +457,29 @@ const UI = (function () {
     const servicioSel = document.getElementById("pServicio");
     const puertoInput = document.getElementById("pPuerto");
     const protocoloInput = document.getElementById("pProtocolo");
+    const camposManual = ["pOrigen", "pDestino", "pServicio", "pRol", "pIpOrigen", "pIpDestino"];
+    let huboUnaPrueba = false;
+
     function sincronizarServicio() {
       const s = ESCENARIO.servicios.find((x) => x.nombre === servicioSel.value);
       if (s) { puertoInput.value = s.puerto || "cualquiera"; protocoloInput.value = s.protocolo; }
     }
     servicioSel.addEventListener("change", sincronizarServicio);
     sincronizarServicio();
+
+    /* Si el estudiante cambia cualquier campo sin volver a presionar
+       "Probar comunicación", el resultado anterior queda obsoleto (ya no
+       corresponde a lo que hay en el formulario). Para evitar confusión
+       lo limpiamos de inmediato en vez de dejarlo ahí. */
+    function marcarResultadoObsoleto() {
+      if (!huboUnaPrueba) return;
+      document.getElementById("resultadoPrueba").innerHTML =
+        `<p class="panel-empty">Cambiaste los datos de la prueba — presiona "Probar comunicación" para ver el resultado actualizado.</p>`;
+    }
+    camposManual.forEach((id) => {
+      document.getElementById(id).addEventListener("input", marcarResultadoObsoleto);
+      document.getElementById(id).addEventListener("change", marcarResultadoObsoleto);
+    });
 
     function ejecutarPrueba() {
       const paquete = {
@@ -473,7 +493,8 @@ const UI = (function () {
         ipDestino: document.getElementById("pIpDestino").value
       };
       const fb = App.probarTrafico(paquete);
-      document.getElementById("resultadoPrueba").innerHTML = feedbackHTML(fb);
+      huboUnaPrueba = true;
+      document.getElementById("resultadoPrueba").innerHTML = feedbackHTML(fb, paquete);
       document.getElementById("registroPruebas").innerHTML = registroTablaHTML();
       document.getElementById("checklistEscenarios").innerHTML = checklistHTML();
       wireChecklist();
