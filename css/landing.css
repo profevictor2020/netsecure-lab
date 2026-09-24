@@ -1,0 +1,139 @@
+/* NetSecure Lab — landing page (selector entre Laboratorio y Simulador) */
+
+:root {
+  --bg: #0b1220;
+  --bg-panel: #121b2e;
+  --bg-panel-alt: #0f1729;
+  --border: #24314d;
+  --border-soft: #1a2439;
+  --text: #dbe4f3;
+  --text-muted: #8fa0c0;
+  --text-faint: #5f7093;
+  --accent: #3fd1c2;
+  --accent-strong: #22b8a6;
+  --accent-soft: rgba(63, 209, 194, 0.12);
+  --font: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2 { font-weight: 600; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+
+.landing-header {
+  padding: 28px 24px 10px;
+}
+.brand { display: flex; align-items: center; gap: 12px; max-width: 1000px; margin: 0 auto; }
+.brand-mark {
+  font-size: 26px; color: var(--accent); width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-panel);
+}
+.brand-text h1 { font-size: 20px; }
+.brand-text p { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+
+.landing-main {
+  flex: 1;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 30px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.landing-intro {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14.5px;
+  max-width: 640px;
+  margin: 0 auto 34px;
+}
+.landing-intro strong { color: var(--text); }
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 22px;
+}
+
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 26px;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.choice-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-panel-alt);
+  transform: translateY(-3px);
+}
+
+.choice-icon { font-size: 34px; margin: 4px 0 10px; }
+
+.choice-card h2 { font-size: 19px; }
+
+.choice-card p { color: var(--text-muted); font-size: 13.5px; flex: 1; }
+
+.choice-cta {
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.tag-alt {
+  background: rgba(232, 179, 74, 0.12);
+  color: #e8b34a;
+}
+
+.landing-footer {
+  padding: 16px 24px 24px;
+  text-align: center;
+}
+.landing-footer p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .choice-grid { grid-template-columns: 1fr; }
+  .landing-main { padding-top: 10px; }
+}

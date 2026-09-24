@@ -57,6 +57,16 @@ p { margin: 0 0 12px; }
   flex-wrap: wrap;
 }
 .brand { display: flex; align-items: center; gap: 12px; }
+.brand-back {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-back:hover { color: var(--accent); border-color: var(--accent); }
 .brand-mark {
   font-size: 26px;
   color: var(--accent);

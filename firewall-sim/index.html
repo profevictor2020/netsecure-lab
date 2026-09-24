@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Firewall · NetSecure Lab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <a href="../index.html" class="brand-back" title="Volver al inicio">←</a>
+      <span class="brand-mark">◈</span>
+      <div class="brand-text">
+        <h1>Simulador de Firewall</h1>
+        <p>NetSecure Lab · Práctica libre, sin nota</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btnGuardar" class="btn btn-ghost">Guardar avance</button>
+      <button id="btnReiniciar" class="btn btn-ghost">Reiniciar simulador</button>
+    </div>
+  </div>
+</header>
+
+<nav class="module-nav" id="moduleNav" aria-label="Navegación">
+  <button class="nav-btn active" data-vista="introduccion">Introducción</button>
+  <button class="nav-btn" data-vista="reglas">Reglas de firewall</button>
+  <button class="nav-btn" data-vista="prueba">Prueba de tráfico</button>
+</nav>
+
+<main id="app" class="app-main">
+  <p class="loading">Cargando simulador…</p>
+</main>
+
+<footer class="app-footer">
+  <p>Herramienta educativa sin fines productivos. No simula tráfico real, no se conecta a ninguna red y no ejecuta comandos. Los datos son ficticios.</p>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="js/motor.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

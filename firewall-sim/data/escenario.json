@@ -1,0 +1,68 @@
+{
+  "caso": {
+    "nombre": "FríoSur Distribución",
+    "descripcion": "Mismo caso del laboratorio principal: una empresa ficticia de distribución de alimentos refrigerados. Aquí practicas exclusivamente la configuración y el comportamiento de su firewall."
+  },
+
+  "zonas": [
+    { "id": "internet", "nombre": "Internet", "confianza": 0, "confianzaLabel": "No confiable", "descripcion": "Red pública, fuera del control de la organización." },
+    { "id": "usuarios", "nombre": "Usuarios", "confianza": 2, "confianzaLabel": "Confianza limitada", "descripcion": "Estaciones de trabajo del personal operativo." },
+    { "id": "vpn", "nombre": "VPN / Acceso remoto", "confianza": 2, "confianzaLabel": "Acceso externo controlado", "descripcion": "Conexiones remotas autenticadas hacia la red interna." },
+    { "id": "administracion", "nombre": "Administración", "confianza": 3, "confianzaLabel": "Confianza media", "descripcion": "Equipos y cuentas con privilegios de administración." },
+    { "id": "camaras", "nombre": "Cámaras", "confianza": 1, "confianzaLabel": "Dispositivo restringido (IoT)", "descripcion": "Videovigilancia; firmware limitado, objetivo frecuente de ataque." },
+    { "id": "sensores", "nombre": "Sensores", "confianza": 1, "confianzaLabel": "Dispositivo restringido (IoT)", "descripcion": "Sensores de refrigeración; mismo perfil de riesgo que las cámaras." },
+    { "id": "servidores", "nombre": "Servidores", "confianza": 4, "confianzaLabel": "Zona crítica", "descripcion": "Aloja los sistemas y datos más sensibles del negocio." }
+  ],
+
+  "nodos": [
+    { "id": "internet", "nombre": "Internet", "zona": "internet" },
+    { "id": "usuarios", "nombre": "Usuarios", "zona": "usuarios" },
+    { "id": "administracion", "nombre": "Administración", "zona": "administracion" },
+    { "id": "proveedor_externo", "nombre": "Proveedor externo (VPN)", "zona": "vpn" },
+    { "id": "usuario_vpn", "nombre": "Usuario VPN (teletrabajo)", "zona": "vpn" },
+    { "id": "camaras", "nombre": "Cámaras de seguridad", "zona": "camaras" },
+    { "id": "sensores", "nombre": "Sensores de refrigeración", "zona": "sensores" },
+    { "id": "servidor_web", "nombre": "Servidor web", "zona": "servidores" },
+    { "id": "sistema_pedidos", "nombre": "Sistema de pedidos", "zona": "servidores" },
+    { "id": "servidor_despacho", "nombre": "Servidor de despacho", "zona": "servidores" },
+    { "id": "base_datos", "nombre": "Base de datos", "zona": "servidores" },
+    { "id": "registros_temperatura", "nombre": "Registros de temperatura", "zona": "servidores" },
+    { "id": "servidor_reportes", "nombre": "Servidor de reportes", "zona": "servidores" },
+    { "id": "router_firewall", "nombre": "Router / Firewall (gestión)", "zona": "administracion" }
+  ],
+
+  "protocolos": ["TCP", "UDP", "ICMP", "Cualquiera"],
+
+  "servicios": [
+    { "nombre": "HTTPS", "puerto": "443", "protocolo": "TCP" },
+    { "nombre": "HTTP", "puerto": "80", "protocolo": "TCP" },
+    { "nombre": "SSH", "puerto": "22", "protocolo": "TCP" },
+    { "nombre": "PostgreSQL", "puerto": "5432", "protocolo": "TCP" },
+    { "nombre": "RDP", "puerto": "3389", "protocolo": "TCP" },
+    { "nombre": "DNS", "puerto": "53", "protocolo": "UDP" },
+    { "nombre": "ICMP (ping)", "puerto": "", "protocolo": "ICMP" },
+    { "nombre": "Cualquier servicio", "puerto": "cualquiera", "protocolo": "Cualquiera" }
+  ],
+
+  "roles": [
+    { "id": "operador", "nombre": "Operador" },
+    { "id": "supervisor", "nombre": "Supervisor" },
+    { "id": "administrador", "nombre": "Administrador" },
+    { "id": "proveedor_externo", "nombre": "Proveedor externo" },
+    { "id": "usuario_vpn", "nombre": "Usuario VPN" },
+    { "id": "desconocido", "nombre": "Desconocido / no identificado" }
+  ],
+
+  "solicitudesSugeridas": [
+    { "id": "s1", "origen": "usuarios", "destino": "servidor_web", "servicio": "HTTPS", "puerto": "443", "protocolo": "TCP", "contexto": "Acceso habitual de los usuarios al sistema de pedidos vía web." },
+    { "id": "s2", "origen": "usuarios", "destino": "base_datos", "servicio": "PostgreSQL", "puerto": "5432", "protocolo": "TCP", "contexto": "Un usuario intenta conectarse directo a la base de datos." },
+    { "id": "s3", "origen": "administracion", "destino": "router_firewall", "servicio": "SSH", "puerto": "22", "protocolo": "TCP", "contexto": "Tarea de gestión de la infraestructura de red." },
+    { "id": "s4", "origen": "camaras", "destino": "internet", "servicio": "Cualquier servicio", "puerto": "cualquiera", "protocolo": "Cualquiera", "contexto": "Una cámara intenta salir libremente a Internet." },
+    { "id": "s5", "origen": "sensores", "destino": "registros_temperatura", "servicio": "HTTPS", "puerto": "443", "protocolo": "TCP", "contexto": "Los sensores reportan sus lecturas al servidor." },
+    { "id": "s6", "origen": "proveedor_externo", "destino": "servidor_despacho", "servicio": "HTTPS", "puerto": "443", "protocolo": "TCP", "contexto": "Soporte puntual de un proveedor externo." },
+    { "id": "s7", "origen": "usuario_vpn", "destino": "sistema_pedidos", "servicio": "HTTPS", "puerto": "443", "protocolo": "TCP", "contexto": "Un teletrabajador accede al sistema de pedidos." },
+    { "id": "s8", "origen": "internet", "destino": "camaras", "servicio": "Cualquier servicio", "puerto": "cualquiera", "protocolo": "Cualquiera", "contexto": "Alguien desde Internet intenta llegar directo a una cámara." },
+    { "id": "s9", "origen": "administracion", "destino": "servidor_reportes", "servicio": "HTTPS", "puerto": "443", "protocolo": "TCP", "contexto": "Consulta de reportes de operación." },
+    { "id": "s10", "origen": "servidor_web", "destino": "base_datos", "servicio": "PostgreSQL", "puerto": "5432", "protocolo": "TCP", "contexto": "La aplicación web consulta su propia base de datos." }
+  ]
+}
