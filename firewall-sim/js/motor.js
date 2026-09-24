@@ -124,6 +124,9 @@ const Motor = (function () {
     if (paquete.destino === "base_datos" && paquete.origen !== "servidor_web") {
       return { verdict: "bad", riesgo: "El acceso directo a la base de datos, sin pasar por la aplicación, amplía el riesgo de modificación, extracción o destrucción de información." };
     }
+    if (paquete.destino === "router_firewall" && paquete.origen !== "administracion") {
+      return { verdict: "bad", riesgo: "Solo Administración debería poder gestionar el router/firewall. Que cualquier otro sistema llegue a su interfaz de gestión es un patrón típico de movimiento lateral: si ese otro sistema es comprometido, el atacante podría reconfigurar la red." };
+    }
     if (sinRegistro && zonaDestino && zonaDestino.confianza >= 4) {
       return { verdict: "warn", riesgo: `Esta comunicación llega a una zona crítica (${zonaDestino.nombre}) y quedó permitida sin registrar. Para trazabilidad, conviene usar "permitir y registrar" en accesos a recursos sensibles.` };
     }
